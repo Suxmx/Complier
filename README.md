@@ -44,4 +44,4 @@ make DEBUG=0 BUILD_DIR="build目录" LIB_DIR="libkoopa目录" INC_DIR="libkoopa�
 
 如需链接 `libkoopa`, 你的 `Makefile` 应当处理 `LIB_DIR` 和 `INC_DIR`.
 
-模板中的 `Makefile` 已经处理了上述内容, 你无需额外关心.
+模板中的 `Makefile` 已经处test
