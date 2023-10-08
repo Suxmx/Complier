@@ -1,0 +1,9 @@
+{
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/yanxi/Complier/Complier/build",
+            "binaryPath": "/home/yanxi/Complier/Complier/build/compiler",
+            "binaryArgs": []
+        }
+    ]
+}
