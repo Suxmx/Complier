@@ -9,6 +9,7 @@ class BaseAST
 public:
     virtual ~BaseAST() = default;
     virtual void Dump() const = 0;
+    virtual void DumpIR() const = 0;
 };
 
 class CompUnitAST : public BaseAST
@@ -20,6 +21,10 @@ public:
         cout << "CompUnit { ";
         funcDef->Dump();
         cout << " }";
+    }
+    void DumpIR() const override
+    {
+        funcDef->DumpIR();
     }
 };
 
@@ -37,6 +42,15 @@ public:
         block->Dump();
         cout << " }";
     }
+    void DumpIR() const override
+    {
+        cout << "fun @" << ident << "(): ";
+        funcType->DumpIR();
+        cout << " {" << endl;
+        block->DumpIR();
+        cout << endl
+             << "}";
+    }
 };
 class FuncTypeAST : public BaseAST
 {
@@ -46,6 +60,10 @@ public:
     {
         cout << "FuncType{ " << type << " }";
     }
+    void DumpIR() const override
+    {
+        cout << "i32";
+    }
 };
 class BlockAST : public BaseAST
 {
@@ -53,9 +71,14 @@ public:
     unique_ptr<BaseAST> stmt;
     void Dump() const override
     {
-        cout<<"BlockAST { ";
+        cout << "BlockAST { ";
         stmt->Dump();
-        cout<<" }";
+        cout << " }";
+    }
+    void DumpIR() const override
+    {
+        cout << "\%entry:" << endl;
+        stmt->DumpIR();
     }
 };
 class StmtAST : public BaseAST
@@ -64,6 +87,10 @@ public:
     int num;
     void Dump() const override
     {
-        cout<<"StmtAST { "<<num<<" }";
+        cout << "StmtAST { " << num << " }";
+    }
+    void DumpIR() const override
+    {
+        cout << "\tret " << num;
     }
 };
