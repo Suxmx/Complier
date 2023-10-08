@@ -1,1 +1,3 @@
 docker run -it --rm -v /home/yanxi/Complier/Complier:/root/compiler maxxing/compiler-dev bash
+
+build/compiler -koopa hello.c -o hello.koopa

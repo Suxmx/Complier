@@ -33,7 +33,7 @@ public:
     {
         cout << "FuncDefAST { ";
         funcType->Dump();
-        cout << ", " << ident << " , ";
+        cout << ", " << ident << ", ";
         block->Dump();
         cout << " }";
     }
@@ -41,7 +41,7 @@ public:
 class FuncTypeAST : public BaseAST
 {
 public:
-    const string type = "int";
+    string type;
     void Dump() const override
     {
         cout << "FuncType{ " << type << " }";
