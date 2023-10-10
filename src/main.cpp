@@ -2,8 +2,10 @@
 #include <cstdio>
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <string>
 #include "AST.h"
+#include "koopa.h"
 
 using namespace std;
 
@@ -31,7 +33,23 @@ int main(int argc, const char *argv[]) {
     unique_ptr<BaseAST> ast;
     auto ret = yyparse(ast);
     assert(!ret);
+    //读取IR到字符串中
+    stringstream ss;
+    streambuf* coutBuf=cout.rdbuf();
+    cout.rdbuf(ss.rdbuf());
     ast->DumpIR();
-    cout<<endl;
+    cout.rdbuf(coutBuf);
+    const char* irstr=ss.str().data();
+    //将文本IR转移到内存中
+    koopa_program_t program;
+    koopa_error_code_t errRes=koopa_parse_from_string(irstr,&program);
+    assert(errRes==KOOPA_EC_SUCCESS);
+
+    koopa_raw_program_builder_t builder=koopa_new_raw_program_builder();
+    koopa_raw_program_t raw=koopa_build_raw_program(builder,program);
+    koopa_delete_program(program);
+    
+
+    koopa_delete_raw_program_builder(builder);
     return 0;
 }
