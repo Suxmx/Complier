@@ -17,6 +17,7 @@ using namespace std;
 
 /* 空白符和注释 */
 WhiteSpace    [ \t\n\r]*
+BlockComment  "/*"([^\*/]*)"*/"
 LineComment   "//".*
 
 /* 标识符 */
@@ -30,6 +31,7 @@ Hexadecimal   0[xX][0-9a-fA-F]+
 %%
 
 {WhiteSpace}    { /* 忽略, 不做任何操作 */ }
+{BlockComment}  {}
 {LineComment}   { /* 忽略, 不做任何操作 */ }
 
 "int"           { return INT; }
