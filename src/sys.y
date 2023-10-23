@@ -42,9 +42,9 @@ using namespace std;
 %token <int_val> INT_CONST
 
 // 非终结符的类型定义
-%type <ast_val> FuncDef FuncType Block Stmt
+%type <ast_val> FuncDef FuncType Block Stmt PrimaryExp UnaryExp Exp
 %type <int_val> Number
-
+%type <str_val> UnaryOp
 %%
 
 // 开始符, CompUnit ::= FuncDef, 大括号后声明了解析完成后 parser 要做的事情
@@ -81,7 +81,7 @@ FuncDef
   }
   ;
 
-// 同上, 不再解释
+// 同上, 不再解释 
 FuncType
   : INT {
     auto funcType=new FuncTypeAST();
@@ -99,9 +99,9 @@ Block
   ;
 
 Stmt
-  : RETURN Number ';' {
+  : RETURN Exp ';' {
     auto stmt=new StmtAST();
-    stmt->num = $2;
+    stmt->exp = unique_ptr<BaseAST>($2);
     $$ = stmt;
   }
   ;
@@ -111,7 +111,56 @@ Number
     $$ = $1;
   }
   ;
+Exp
+  : UnaryExp{
+    auto exp = new ExpAST();
+    exp->unaryExp = unique_ptr<BaseAST>($1);
+    $$ = exp;
+  };
+UnaryExp
+  : PrimaryExp
+  {
+    auto unaryExp = new UnaryExpAST();
+    unaryExp->type = EUnaryExp::PrimaryExp;
+    unaryExp->primaryExp = unique_ptr<BaseAST>($1);
+    $$ = unaryExp;
+  } 
+  | UnaryOp UnaryExp
+  {
+    auto unaryExp = new UnaryExpAST();
+    unaryExp->type = EUnaryExp::UnaryExp;
+    unaryExp->unaryExp = unique_ptr<BaseAST>($2);
+    unaryExp->op = (*unique_ptr<string>($1))[0];
+    $$ = unaryExp;
+  };
+UnaryOp
+  : '+'
+  {
+    $$ = new string("+");
+  } 
+  | '-' 
+  {
+    $$ = new string("-");
+  } | '!'
+  {
+    $$ = new string("!");
+  };
 
+PrimaryExp
+  : '(' Exp ')'
+  {
+    auto primaryExp = new PrimaryExpAST();
+    primaryExp->type = EPrimaryExp::Exp;
+    primaryExp->exp = unique_ptr<BaseAST>($2);
+    $$ = primaryExp; 
+  } 
+  | Number
+  {
+    auto primaryExp = new PrimaryExpAST();
+    primaryExp->type = EPrimaryExp::Number;
+    primaryExp->num = $1;
+    $$ = primaryExp;
+  };
 %%
 
 // 定义错误处理函数, 其中第二个参数是错误信息

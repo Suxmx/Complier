@@ -62,7 +62,7 @@ int main(int argc, const char *argv[])
     }
     else if ((string)mode == "-koopa")
     {
-        freopen(output, "w", stdout);
+        // freopen(output, "w", stdout);
         ast->DumpIR();
     }
     else
