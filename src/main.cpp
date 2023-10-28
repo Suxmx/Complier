@@ -70,5 +70,6 @@ int main(int argc, const char *argv[])
         cout << mode << endl;
         assert(false);
     }
+    
     return 0;
 }
