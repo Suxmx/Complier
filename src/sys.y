@@ -42,9 +42,9 @@ using namespace std;
 %token <int_val> INT_CONST
 
 // 非终结符的类型定义
-%type <ast_val> FuncDef FuncType Block Stmt PrimaryExp UnaryExp Exp
+%type <ast_val> FuncDef FuncType Block Stmt PrimaryExp UnaryExp Exp AddExp MulExp
 %type <int_val> Number
-%type <str_val> UnaryOp
+%type <str_val> UnaryOp AddOp MulOp
 %%
 
 // 开始符, CompUnit ::= FuncDef, 大括号后声明了解析完成后 parser 要做的事情
@@ -112,7 +112,7 @@ Number
   }
   ;
 Exp
-  : UnaryExp{
+  : AddExp{
     auto exp = new ExpAST();
     exp->unaryExp = unique_ptr<BaseAST>($1);
     $$ = exp;
@@ -161,6 +161,61 @@ PrimaryExp
     primaryExp->num = $1;
     $$ = primaryExp;
   };
+AddOp
+  :'+'
+  {
+    $$ = new string("+");
+  }
+  |'-'
+  {
+    $$ = new string("-");
+  }
+MulOp
+  :'*'
+  {
+    $$ = new string("*");
+  }
+  |'/'
+  {
+    $$ = new string("/");
+  }
+  |'%'
+  {
+    $$ = new string("%");
+  }
+MulExp
+  :UnaryExp{
+    auto mulExp = new MulExpAST();
+    mulExp->type = EMulExp::UnaryExp;
+    mulExp->unaryExp = unique_ptr<BaseAST>($1);
+    $$ = mulExp;
+  }
+  |MulExp MulOp UnaryExp
+  {
+    auto mulExp = new MulExpAST();
+    mulExp->type = EMulExp::MulExp;
+    mulExp->lhs = unique_ptr<BaseAST>($1);
+    mulExp->op = (*unique_ptr<string>($2))[0];
+    mulExp->rhs = unique_ptr<BaseAST>($3);
+    $$ = mulExp;
+  }
+AddExp
+  :MulExp
+  {
+    auto addExp = new AddExpAST();
+    addExp->type = EAddExp::MulExp;
+    addExp->mulExp = unique_ptr<BaseAST>($1);
+    $$ = addExp;
+  } 
+  | AddExp AddOp MulExp
+  {
+    auto addExp = new AddExpAST();
+    addExp->type = EAddExp::AddExp;
+    addExp->lhs = unique_ptr<BaseAST>($1);
+    addExp->op = (*unique_ptr<string>($2))[0];
+    addExp->rhs = unique_ptr<BaseAST>($3);
+    $$ = addExp;
+  }
 %%
 
 // 定义错误处理函数, 其中第二个参数是错误信息

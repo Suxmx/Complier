@@ -14,6 +14,16 @@ enum class EPrimaryExp
     Exp,
     Number
 };
+enum class EAddExp
+{
+    MulExp,
+    AddExp
+};
+enum class EMulExp
+{
+    UnaryExp,
+    MulExp
+};
 static int expNum = 0;
 class BaseAST
 {
@@ -206,6 +216,108 @@ public:
             {
                 cout << "\t" << resultReg << " = sub 0, " << calcReg << endl;
                 expNum++;
+                return resultReg;
+            }
+        }
+    }
+};
+class MulExpAST : public BaseAST
+{
+public:
+    EMulExp type;
+    unique_ptr<BaseAST> unaryExp;
+    unique_ptr<BaseAST> lhs;
+    unique_ptr<BaseAST> rhs;
+    char op;
+    void Dump() const override
+    {
+        cout << "MulExpAST { ";
+        if (type == EMulExp::UnaryExp)
+        {
+            unaryExp->Dump();
+        }
+        else if (type == EMulExp::MulExp)
+        {
+            lhs->Dump();
+            cout << op << " ";
+            rhs->Dump();
+        }
+        cout << " } ";
+    }
+    string DumpIR() const override
+    {
+
+        if (type == EMulExp::UnaryExp)
+        {
+            return unaryExp->DumpIR();
+        }
+        else if (type == EMulExp::MulExp)
+        {
+            string lCalcReg = lhs->DumpIR();
+            string rCalcReg = rhs->DumpIR();
+            string resultReg = "%" + to_string(expNum);
+            expNum++;
+            if (op == '*')
+            {
+                cout << "\t" << resultReg << " = mul " << lCalcReg << ", " << rCalcReg << endl;
+                return resultReg;
+            }
+            else if (op == '/')
+            {
+                cout << "\t" << resultReg << " = div " << lCalcReg << ", " << rCalcReg << endl;
+                return resultReg;
+            }
+            else if (op == '%')
+            {
+                cout << "\t" << resultReg << " = mod " << lCalcReg << ", " << rCalcReg << endl;
+                return resultReg;
+            }
+        }
+    }
+};
+class AddExpAST : public BaseAST
+{
+public:
+    EAddExp type;
+    unique_ptr<BaseAST> mulExp;
+    unique_ptr<BaseAST> lhs;
+    unique_ptr<BaseAST> rhs;
+    char op;
+    void Dump() const override
+    {
+        cout << "AddExpAST { ";
+        if (type == EAddExp::MulExp)
+        {
+            mulExp->Dump();
+        }
+        else if (type == EAddExp::AddExp)
+        {
+            lhs->Dump();
+            cout << op << " ";
+            rhs->Dump();
+        }
+        cout << " } ";
+    }
+    string DumpIR() const override
+    {
+        if (type == EAddExp::MulExp)
+        {
+            return mulExp->DumpIR();
+        }
+        else if (type == EAddExp::AddExp)
+        {
+            string lCalcReg = lhs->DumpIR();
+            string rCalcReg = rhs->DumpIR();
+            string resultReg = "%" + to_string(expNum);
+            expNum++;
+            if (op == '+')
+            {
+                cout << "\t" << resultReg << " = add " << lCalcReg << ", " << rCalcReg << endl;
+                return resultReg;
+            }
+            else if (op == '-')
+            {
+                cout << "\t" << resultReg << " = sub " << lCalcReg << ", " << rCalcReg << endl;
                 return resultReg;
             }
         }
