@@ -120,7 +120,7 @@ Reg Visit(const koopa_raw_value_t &value)
 void Visit(const koopa_raw_return_t &ret)
 {
     Reg res = Visit(ret.value);
-    cout << "\tli a0," << res.GetRegName() << endl;
+    cout << "\tmv a0," << res.GetRegName() << endl;
     cout << "\tret" << endl;
 }
 Reg Visit(const koopa_raw_integer_t &integer, const koopa_raw_value_t &value)
@@ -145,6 +145,15 @@ Reg Visit(const koopa_raw_binary_t &binary, const koopa_raw_value_t &value)
     case KOOPA_RBO_EQ:
         cout << "\txor " << res.GetRegName() << ", " << lhs.GetRegName() << ", " << rhs.GetRegName() << endl;
         cout << "\tseqz " << res.GetRegName() << ", " << res.GetRegName() << endl;
+        break;
+    case KOOPA_RBO_MUL:
+        cout << "\tmul " << res.GetRegName() << ", " << lhs.GetRegName() << ", " << rhs.GetRegName() << endl;
+        break;
+    case KOOPA_RBO_DIV:
+        cout << "\tdiv " << res.GetRegName() << ", " << lhs.GetRegName() << ", " << rhs.GetRegName() << endl;
+        break;
+    case KOOPA_RBO_MOD:
+        cout << "\trem " << res.GetRegName() << ", " << lhs.GetRegName() << ", " << rhs.GetRegName() << endl;
         break;
     default:
         cout << "Unknown op:" << binary.op << endl;
