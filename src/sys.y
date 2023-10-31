@@ -10,6 +10,7 @@
 #include <memory>
 #include <string>
 #include "AST.h"
+#include "Utilities.h"
 
 // 声明 lexer 函数和错误处理函数
 int yylex();
@@ -37,14 +38,14 @@ using namespace std;
 
 // lexer 返回的所有 token 种类的声明
 // 注意 IDENT 和 INT_CONST 会返回 token 的值, 分别对应 str_val 和 int_val
-%token INT RETURN
+%token INT RETURN LESS LARGER AND OR LESSEQ LARGEREQ EQ NE
 %token <str_val> IDENT
 %token <int_val> INT_CONST
 
 // 非终结符的类型定义
 %type <ast_val> FuncDef FuncType Block Stmt PrimaryExp UnaryExp Exp AddExp MulExp
-%type <int_val> Number
-%type <str_val> UnaryOp AddOp MulOp
+%type <int_val> Number AddOp MulOp RelOp EqOp LAndOp=
+%type <str_val> UnaryOp 
 %%
 
 // 开始符, CompUnit ::= FuncDef, 大括号后声明了解析完成后 parser 要做的事情
@@ -164,38 +165,39 @@ PrimaryExp
 AddOp
   :'+'
   {
-    $$ = new string("+");
+    $$ = 1;
   }
   |'-'
   {
-    $$ = new string("-");
+    $$ = 2;
   }
 MulOp
   :'*'
   {
-    $$ = new string("*");
+
+    $$ = 3;
   }
   |'/'
   {
-    $$ = new string("/");
+    $$ = 4;
   }
   |'%'
   {
-    $$ = new string("%");
+    $$ = 5;
   }
 MulExp
   :UnaryExp{
     auto mulExp = new MulExpAST();
-    mulExp->type = EMulExp::UnaryExp;
+    mulExp->type = EMulExp::Single;
     mulExp->unaryExp = unique_ptr<BaseAST>($1);
     $$ = mulExp;
   }
   |MulExp MulOp UnaryExp
   {
     auto mulExp = new MulExpAST();
-    mulExp->type = EMulExp::MulExp;
+    mulExp->type = EMulExp::Double;
     mulExp->lhs = unique_ptr<BaseAST>($1);
-    mulExp->op = (*unique_ptr<string>($2))[0];
+    mulExp->op = (EOp)($2);
     mulExp->rhs = unique_ptr<BaseAST>($3);
     $$ = mulExp;
   }
@@ -203,18 +205,71 @@ AddExp
   :MulExp
   {
     auto addExp = new AddExpAST();
-    addExp->type = EAddExp::MulExp;
+    addExp->type = EAddExp::Single;
     addExp->mulExp = unique_ptr<BaseAST>($1);
     $$ = addExp;
   } 
   | AddExp AddOp MulExp
   {
     auto addExp = new AddExpAST();
-    addExp->type = EAddExp::AddExp;
+    addExp->type = EAddExp::Double;
     addExp->lhs = unique_ptr<BaseAST>($1);
-    addExp->op = (*unique_ptr<string>($2))[0];
+    addExp->op = (EOp)($2);
     addExp->rhs = unique_ptr<BaseAST>($3);
     $$ = addExp;
+  }
+RelOp
+  :LESS
+  {
+    $$ = 6;
+  }
+  |LARGER
+  {
+    $$ = 7;
+  }
+  |LESSEQ
+  {
+    $$ = 8;
+  }
+  |LARGEREQ
+  {
+    $$ = 9;
+  }
+RelExp
+  :AddExp 
+  {
+
+  }
+  |RelExp RelOp AddExp
+  {
+
+  }
+EqOp
+  :EQ
+  {
+    $$ = 10;
+  } 
+  |NE
+  {
+    $$ = 11;
+  }
+EqExp
+  :RelExp
+  {
+
+  }
+  |EqExp
+  {
+
+  }
+LAndOp
+  :AND
+  {
+    $$ = 12;
+  }
+  |OR
+  {
+    $$ = 13;
   }
 %%
 
