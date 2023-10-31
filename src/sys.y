@@ -43,8 +43,8 @@ using namespace std;
 %token <int_val> INT_CONST
 
 // 非终结符的类型定义
-%type <ast_val> FuncDef FuncType Block Stmt PrimaryExp UnaryExp Exp AddExp MulExp
-%type <int_val> Number AddOp MulOp RelOp EqOp LAndOp=
+%type <ast_val> FuncDef FuncType Block Stmt PrimaryExp UnaryExp Exp AddExp MulExp RelExp EqExp LAndExp
+%type <int_val> Number AddOp MulOp RelOp EqOp LAndOp
 %type <str_val> UnaryOp 
 %%
 
@@ -238,11 +238,18 @@ RelOp
 RelExp
   :AddExp 
   {
-
+    auto singleExp = new RelExpAST();
+    singleExp->type = ERelExp::Single;
+    single->single = $1;
+    $$ = singleExp;
   }
   |RelExp RelOp AddExp
   {
-
+    auto doubleExp = new RelExpAST();
+    doubleExp->type = ERelExp::Double;
+    doubleExp->lhs = $1;
+    doubleExp->rhs = $3;
+    doubleExp->op = (EOp)($2);
   }
 EqOp
   :EQ
@@ -256,11 +263,16 @@ EqOp
 EqExp
   :RelExp
   {
-
+    auto singleExp = new EqExpAST();
+    singleExp->type = EEqExp::Single;
+    singleExp->single = $1;
+    
   }
   |EqExp
   {
-
+    auto doubleExp= new EqExpAST();
+    doubleExp->type = EEqExp::Double;
+    doubleExp->lhs = $1;
   }
 LAndOp
   :AND
