@@ -38,7 +38,7 @@ int main(int argc, const char *argv[])
     // 读取IR到字符串中 
     if ((string)mode == "-riscv")
     {
-        stringstream ss;
+        stringstream ss; 
         streambuf *coutBuf = cout.rdbuf();
         cout.rdbuf(ss.rdbuf());
         ast->DumpIR();
