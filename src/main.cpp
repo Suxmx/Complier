@@ -53,9 +53,6 @@ int main(int argc, const char *argv[])
         koopa_raw_program_t raw = koopa_build_raw_program(builder, program);
         koopa_delete_program(program);
         // 处理
-        koopa_raw_function_t func = (koopa_raw_function_t)raw.funcs.buffer[0];
-        koopa_raw_basic_block_t block = (koopa_raw_basic_block_t)func->bbs.buffer[0];
-        koopa_raw_value_t value = (koopa_raw_value_t)block->insts.buffer[0];
         freopen(output, "w", stdout);
         Visit(raw);
         koopa_delete_raw_program_builder(builder);

@@ -1,11 +1,11 @@
 %code requires {
+  #pragma once
   #include <memory>
   #include <string>
   #include "AST.h"
 }
 
 %{
-
 #include <iostream>
 #include <memory>
 #include <string>
@@ -43,8 +43,8 @@ using namespace std;
 %token <int_val> INT_CONST
 
 // 非终结符的类型定义
-%type <ast_val> FuncDef FuncType Block Stmt PrimaryExp UnaryExp Exp AddExp MulExp RelExp EqExp LAndExp
-%type <int_val> Number AddOp MulOp RelOp EqOp LAndOp
+%type <ast_val> FuncDef FuncType Block Stmt PrimaryExp UnaryExp Exp AddExp MulExp RelExp EqExp LAndExp LOrExp
+%type <int_val> Number AddOp MulOp RelOp EqOp LAndOp LOrOp
 %type <str_val> UnaryOp 
 %%
 
@@ -268,7 +268,7 @@ EqExp
     singleExp->single = $1;
     
   }
-  |EqExp
+  |EqExp EqOp RelExp
   {
     auto doubleExp= new EqExpAST();
     doubleExp->type = EEqExp::Double;
@@ -279,9 +279,28 @@ LAndOp
   {
     $$ = 12;
   }
-  |OR
+LOrOp
+  :OR
   {
     $$ = 13;
+  }
+LAndExp
+  :EqExp
+  {
+
+  }
+  |LAndExp LAndOp EqExp
+  {
+
+  }
+LOrExp
+  :LAndExp
+  {
+
+  }
+  |LOrExp LOrOp LAndExp
+  {
+
   }
 %%
 

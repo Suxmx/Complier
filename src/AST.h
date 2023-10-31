@@ -147,7 +147,7 @@ public:
         {
             return to_string(num);
         }
-        else if (type == EPrimaryExp::Exp)
+        else  
         {
             return exp->DumpIR();
         }
@@ -180,7 +180,7 @@ public:
         {
             return primaryExp->DumpIR();
         }
-        else if (type == EUnaryExp::UnaryExp)
+        else  if(type == EUnaryExp::UnaryExp)
         {
             string calcReg = unaryExp->DumpIR();
             string resultReg = "%" + to_string(expNum);
@@ -201,6 +201,7 @@ public:
                 return resultReg;
             }
         }
+        return "";
     }
 };
 class MulExpAST : public BaseAST
@@ -256,6 +257,7 @@ public:
                 return resultReg;
             }
         }
+        return "";
     }
 };
 class AddExpAST : public BaseAST
@@ -305,6 +307,7 @@ public:
                 return resultReg;
             }
         }
+        return "";
     }
 };
 class RelExpAST : public BaseAST{
@@ -321,6 +324,7 @@ public:
     string DumpIR() const override
     {
 
+        return "";
     }
 };
 ;
@@ -337,6 +341,7 @@ class EqExpAST : public BaseAST{
     string DumpIR() const override
     {
         
+        return "";
     }
 };
 ;
@@ -353,5 +358,6 @@ class LAndExpAST : public BaseAST{
     string DumpIR() const override
     {
         
+        return "";
     }
 };

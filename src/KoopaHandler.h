@@ -1,3 +1,4 @@
+#pragma once
 #include "koopa.h"
 #include <iostream>
 #include <cassert>
@@ -114,8 +115,10 @@ Reg Visit(const koopa_raw_value_t &value)
         break;
     default:
         cout << value->kind.tag;
+        return Reg(0);
         break;
     }
+
 }
 void Visit(const koopa_raw_return_t &ret)
 {
