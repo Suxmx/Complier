@@ -35,7 +35,7 @@ int main(int argc, const char *argv[])
     unique_ptr<BaseAST> ast;
     auto ret = yyparse(ast);
     assert(!ret);
-    // 读取IR到字符串中
+    // 读取IR到字符串中 
     if ((string)mode == "-riscv")
     {
         stringstream ss;
