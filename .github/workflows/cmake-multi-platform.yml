@@ -16,6 +16,23 @@ jobs:
     - name: Build and Test with Docker
       run: |
         docker run -v ${{ github.workspace }}:/app maxxing/compiler-dev /bin/bash -c "cd /app && make"
+    - name: Get Release ID
+      id: release
+      run: |
+        response=$(curl -s -X GET -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ github.repository }}/releases/tags/v1.0)
+        release_id=$(echo $response | jq -r '.id')
+        echo "::set-output name=release_id::$release_id"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Add Tag to Release
+      run: |
+        release_id=${{ steps.release.outputs.release_id }}
+        tag_name="v1.0.0"  # 替换为您要添加的标签名称
+        response=$(curl -s -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -d "{\"tag_name\": \"$tag_name\"}" https://api.github.com/repos/${{ github.repository }}/releases/${release_id}/create)
+        echo $response
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Create Release
       id: create_release
       uses: softprops/action-gh-release@v1
