@@ -3,7 +3,7 @@ name: Build and Test C++ Project
 on:
   push:
     branches:
-      - main
+      - build
 
 jobs:
   build:
@@ -22,7 +22,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: ${{ github.workspace }}/build/compiler  # 指定要上传的文件或文件夹
-        tag_name: v1.0.0
+        tag_name: build
       env:
         GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}  # GitHub Token，用于授权发布操作
 
