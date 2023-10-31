@@ -16,3 +16,13 @@ jobs:
     - name: Build and Test with Docker
       run: |
         docker run -v ${{ github.workspace }}:/app maxxing/compiler-dev /bin/bash -c "cd /app && make"
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{ github.workspace }}/build/*  # 指定要上传的文件或文件夹
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub Token，用于授权发布操作
+
+    - name: Get Release URL
+      run: echo "Release URL: ${{ steps.create_release.outputs.upload_url }}"
