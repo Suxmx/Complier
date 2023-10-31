@@ -57,7 +57,12 @@ enum class EOp
     Or = 13,
 
 };
-inline string PrintOp(EOp op);
+enum class ELOrExp
+{
+    Single,
+    Double
+};
+
 inline string PrintOp(EOp op)
 {
     vector<string> opes = {"+", "-", "*", "/", "%", "<", ">", "<=", ">=", "==", "!=", "&&", "||"};

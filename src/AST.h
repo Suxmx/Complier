@@ -5,7 +5,6 @@
 
 using namespace std;
 
-
 static int expNum = 0;
 class BaseAST
 {
@@ -147,7 +146,7 @@ public:
         {
             return to_string(num);
         }
-        else  
+        else
         {
             return exp->DumpIR();
         }
@@ -180,7 +179,7 @@ public:
         {
             return primaryExp->DumpIR();
         }
-        else  if(type == EUnaryExp::UnaryExp)
+        else if (type == EUnaryExp::UnaryExp)
         {
             string calcReg = unaryExp->DumpIR();
             string resultReg = "%" + to_string(expNum);
@@ -267,7 +266,7 @@ public:
     unique_ptr<BaseAST> mulExp;
     unique_ptr<BaseAST> lhs;
     unique_ptr<BaseAST> rhs;
-    //char op;
+    // char op;
     EOp op;
     void Dump() const override
     {
@@ -310,7 +309,8 @@ public:
         return "";
     }
 };
-class RelExpAST : public BaseAST{
+class RelExpAST : public BaseAST
+{
 public:
     ERelExp type;
     EOp op;
@@ -319,16 +319,59 @@ public:
     unique_ptr<BaseAST> rhs;
     void Dump() const override
     {
-
+        cout << "RelExpAST { ";
+        if (type == ERelExp::Single)
+        {
+            single->Dump();
+            cout << " } ";
+        }
+        else if (type == ERelExp::Double)
+        {
+            lhs->Dump();
+            cout << " " << PrintOp(op);
+            rhs->Dump();
+            cout << " }";
+        }
     }
     string DumpIR() const override
     {
-
+        if (type == ERelExp::Single)
+        {
+            return single->DumpIR();
+        }
+        else if (type == ERelExp::Double)
+        {
+            string lCalcReg = lhs->DumpIR();
+            string rCalcReg = rhs->DumpIR();
+            string resultReg = "%" + to_string(expNum);
+            expNum++;
+            if (op == EOp::Less)
+            {
+                cout << "\t" << resultReg << " = lt " << lCalcReg << ", " << rCalcReg << endl;
+                return resultReg;
+            }
+            else if (op == EOp::Larger)
+            {
+                cout << "\t" << resultReg << " = gt " << lCalcReg << ", " << rCalcReg << endl;
+                return resultReg;
+            }
+            else if (op == EOp::LessEq)
+            {
+                cout << "\t" << resultReg << " = le " << lCalcReg << ", " << rCalcReg << endl;
+                return resultReg;
+            }
+            else if (op == EOp::LargerEq)
+            {
+                cout << "\t" << resultReg << " = ge " << lCalcReg << ", " << rCalcReg << endl;
+                return resultReg;
+            }
+        }
         return "";
     }
 };
-;
-class EqExpAST : public BaseAST{
+class EqExpAST : public BaseAST
+{
+public:
     EEqExp type;
     EOp op;
     unique_ptr<BaseAST> single;
@@ -336,16 +379,49 @@ class EqExpAST : public BaseAST{
     unique_ptr<BaseAST> rhs;
     void Dump() const override
     {
-
+        cout << "EqExpAST { ";
+        if (type == EEqExp::Single)
+        {
+            single->Dump();
+            cout << " } ";
+        }
+        else if (type == EEqExp::Double)
+        {
+            lhs->Dump();
+            cout << " " << PrintOp(op);
+            rhs->Dump();
+            cout << " }";
+        }
     }
     string DumpIR() const override
     {
-        
+        if (type == EEqExp::Single)
+        {
+            return single->DumpIR();
+        }
+        else if (type == EEqExp::Double)
+        {
+            string lCalcReg = lhs->DumpIR();
+            string rCalcReg = rhs->DumpIR();
+            string resultReg = "%" + to_string(expNum);
+            expNum++;
+            if (op == EOp::Eq)
+            {
+                cout << "\t" << resultReg << " = eq " << lCalcReg << ", " << rCalcReg << endl;
+                return resultReg;
+            }
+            else if (op == EOp::Ne)
+            {
+                cout << "\t" << resultReg << " = ne " << lCalcReg << ", " << rCalcReg << endl;
+                return resultReg;
+            }
+        }
         return "";
     }
 };
-;
-class LAndExpAST : public BaseAST{
+class LAndExpAST : public BaseAST
+{
+public:
     ELAndExp type;
     EOp op;
     unique_ptr<BaseAST> single;
@@ -353,11 +429,94 @@ class LAndExpAST : public BaseAST{
     unique_ptr<BaseAST> rhs;
     void Dump() const override
     {
-
+        cout << "LAndExpAST { ";
+        if (type == ELAndExp::Single)
+        {
+            single->Dump();
+            cout << " } ";
+        }
+        else if (type == ELAndExp::Double)
+        {
+            lhs->Dump();
+            cout << " " << PrintOp(op);
+            rhs->Dump();
+            cout << " }";
+        }
     }
     string DumpIR() const override
     {
-        
+        if (type == ELAndExp::Single)
+        {
+            return single->DumpIR();
+        }
+        else if (type == ELAndExp::Double)
+        {
+            string lCalcReg = lhs->DumpIR();
+            string rCalcReg = rhs->DumpIR();
+            string resultReg = "%" + to_string(expNum);
+            expNum++;
+            string tmpLReg="%" + to_string(expNum);
+            cout << "\t" << tmpLReg << " = ne " << lCalcReg << ", "
+                 << "0" << endl;
+            expNum++;
+            string tmpRReg="%" + to_string(expNum);   
+            cout << "\t" << tmpRReg << " = ne " << rCalcReg << ", "
+                 << "0" << endl;
+            cout << "\t" << resultReg << " = and" << tmpLReg << ", " << tmpRReg << endl;
+            expNum++;
+            return resultReg;
+        }
+
+        return "";
+    }
+};
+class LOrExpAST : public BaseAST
+{
+public:
+    ELOrExp type;
+    EOp op;
+    unique_ptr<BaseAST> single;
+    unique_ptr<BaseAST> lhs;
+    unique_ptr<BaseAST> rhs;
+    void Dump() const override
+    {
+        cout << "LOrExpAST { ";
+        if (type == ELOrExp::Single)
+        {
+            single->Dump();
+            cout << " } ";
+        }
+        else if (type == ELOrExp::Double)
+        {
+            lhs->Dump();
+            cout << " " << PrintOp(op);
+            rhs->Dump();
+            cout << " }";
+        }
+    }
+    string DumpIR() const override
+    {
+        if (type == ELOrExp::Single)
+        {
+            return single->DumpIR();
+        }
+        else if (type == ELOrExp::Double)
+        {
+            string lCalcReg = lhs->DumpIR();
+            string rCalcReg = rhs->DumpIR();
+            string resultReg = "%" + to_string(expNum);
+            expNum++;
+            string tmpLReg="%" + to_string(expNum);
+            cout << "\t" << tmpLReg << " = ne " << lCalcReg << ", "
+                 << "0" << endl;
+            expNum++;
+            string tmpRReg="%" + to_string(expNum);   
+            cout << "\t" << tmpRReg << " = ne " << rCalcReg << ", "
+                 << "0" << endl;
+            cout << "\t" << resultReg << " = or" << tmpLReg << ", " << tmpRReg << endl;
+            expNum++;
+            return resultReg;
+        }
         return "";
     }
 };

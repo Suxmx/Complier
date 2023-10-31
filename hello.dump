@@ -1,0 +1,1 @@
+CompUnit { FuncDefAST { FuncType{ int }, main, BlockAST { StmtAST { ExpAST { LOrExpAST { LAndExpAST { RelExpAST { AddExpAST { MulExpAST { UnaryExpAST { PrimaryExpAST { 1 } }  }  }  }  }  }  }  } } } }

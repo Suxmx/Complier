@@ -6,8 +6,8 @@
 #include <string>
 #include "AST.h"
 #include "koopa.h"
-#include "KoopaHandler.h"  
-//test
+#include "KoopaHandler.h"
+// test
 using namespace std;
 
 // 声明 lexer 的输入, 以及 parser 函数
@@ -35,10 +35,10 @@ int main(int argc, const char *argv[])
     unique_ptr<BaseAST> ast;
     auto ret = yyparse(ast);
     assert(!ret);
-    // 读取IR到字符串中 
+    // 读取IR到字符串中
     if ((string)mode == "-riscv")
     {
-        stringstream ss;  
+        stringstream ss;
         streambuf *coutBuf = cout.rdbuf();
         cout.rdbuf(ss.rdbuf());
         ast->DumpIR();
@@ -59,14 +59,19 @@ int main(int argc, const char *argv[])
     }
     else if ((string)mode == "-koopa")
     {
-        freopen(output, "w", stdout);  
+        freopen(output, "w", stdout);
         ast->DumpIR();
+    }
+    else if ((string)mode == "-dump")
+    {
+        freopen(output, "w", stdout);
+        ast->Dump();
     }
     else
     {
         cout << mode << endl;
         assert(false);
     }
-    
+
     return 0;
 }

@@ -1,6 +1,7 @@
-docker run -it --rm -v /home/yanxi/Complier/Complier:/root/compiler maxxing/compiler-dev bash
+docker run -it --rm -v $(pwd):/root/compiler maxxing/compiler-dev bash
 
 build/compiler -koopa hello.c -o hello.koopa
 
+build/compiler -dump hello.c -o hello.dump
 
 build/compiler -riscv hello.c -o hello.riscv

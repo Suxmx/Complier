@@ -1,5 +1,4 @@
 %code requires {
-  #pragma once
   #include <memory>
   #include <string>
   #include "AST.h"
@@ -12,7 +11,7 @@
 #include "AST.h"
 #include "Utilities.h"
 
-// 声明 lexer 函数和错误处理函数
+// 声明 lexer 函数和错误处理函数 
 int yylex();
 void yyerror(std::unique_ptr<BaseAST> &ast, const char *s);
 
@@ -113,7 +112,7 @@ Number
   }
   ;
 Exp
-  : AddExp{
+  : LOrExp{
     auto exp = new ExpAST();
     exp->unaryExp = unique_ptr<BaseAST>($1);
     $$ = exp;
@@ -240,16 +239,17 @@ RelExp
   {
     auto singleExp = new RelExpAST();
     singleExp->type = ERelExp::Single;
-    single->single = $1;
+    singleExp->single = unique_ptr<BaseAST>($1);
     $$ = singleExp;
   }
   |RelExp RelOp AddExp
   {
     auto doubleExp = new RelExpAST();
     doubleExp->type = ERelExp::Double;
-    doubleExp->lhs = $1;
-    doubleExp->rhs = $3;
+    doubleExp->lhs = unique_ptr<BaseAST>($1);
+    doubleExp->rhs = unique_ptr<BaseAST>($3);
     doubleExp->op = (EOp)($2);
+    $$ = doubleExp;
   }
 EqOp
   :EQ
@@ -265,14 +265,17 @@ EqExp
   {
     auto singleExp = new EqExpAST();
     singleExp->type = EEqExp::Single;
-    singleExp->single = $1;
+    singleExp->single = unique_ptr<BaseAST>($1);
     
   }
   |EqExp EqOp RelExp
   {
     auto doubleExp= new EqExpAST();
     doubleExp->type = EEqExp::Double;
-    doubleExp->lhs = $1;
+    doubleExp->lhs = unique_ptr<BaseAST>($1);
+    doubleExp->rhs = unique_ptr<BaseAST>($3);
+    doubleExp->op = (EOp)($2);
+    $$ = doubleExp;
   }
 LAndOp
   :AND
@@ -287,20 +290,36 @@ LOrOp
 LAndExp
   :EqExp
   {
-
+    auto eqExp = new LAndExpAST();
+    eqExp->type = ELAndExp::Single;
+    eqExp->single = unique_ptr<BaseAST>($1);
+    $$ = eqExp;
   }
   |LAndExp LAndOp EqExp
   {
-
+    auto eqExp = new LAndExpAST();
+    eqExp->type = ELAndExp::Double;
+    eqExp->lhs = unique_ptr<BaseAST>($1);
+    eqExp->rhs = unique_ptr<BaseAST>($3);
+    eqExp->op = (EOp)($2);
+    $$ = eqExp;
   }
 LOrExp
   :LAndExp
   {
-
+    auto lAndExp = new LOrExpAST();
+    lAndExp->type = ELOrExp::Single;
+    lAndExp->single = unique_ptr<BaseAST>($1);
+    $$ = lAndExp;
   }
   |LOrExp LOrOp LAndExp
   {
-
+    auto lAndExp = new LOrExpAST();
+    lAndExp->type = ELOrExp::Double;
+    lAndExp->lhs = unique_ptr<BaseAST>($1);
+    lAndExp->rhs = unique_ptr<BaseAST>($3);
+    lAndExp->op = (EOp)($2);
+    $$ = lAndExp;
   }
 %%
 

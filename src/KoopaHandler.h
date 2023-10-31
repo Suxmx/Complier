@@ -118,7 +118,6 @@ Reg Visit(const koopa_raw_value_t &value)
         return Reg(0);
         break;
     }
-
 }
 void Visit(const koopa_raw_return_t &ret)
 {
@@ -149,6 +148,10 @@ Reg Visit(const koopa_raw_binary_t &binary, const koopa_raw_value_t &value)
         cout << "\txor " << res.GetRegName() << ", " << lhs.GetRegName() << ", " << rhs.GetRegName() << endl;
         cout << "\tseqz " << res.GetRegName() << ", " << res.GetRegName() << endl;
         break;
+    case KOOPA_RBO_NOT_EQ:
+        cout << "\txor " << res.GetRegName() << ", " << lhs.GetRegName() << ", " << rhs.GetRegName() << endl;
+        cout << "\tsnez " << res.GetRegName() << ", " << res.GetRegName() << endl;
+        break;
     case KOOPA_RBO_MUL:
         cout << "\tmul " << res.GetRegName() << ", " << lhs.GetRegName() << ", " << rhs.GetRegName() << endl;
         break;
@@ -158,6 +161,27 @@ Reg Visit(const koopa_raw_binary_t &binary, const koopa_raw_value_t &value)
     case KOOPA_RBO_MOD:
         cout << "\trem " << res.GetRegName() << ", " << lhs.GetRegName() << ", " << rhs.GetRegName() << endl;
         break;
+    case KOOPA_RBO_LE:
+        cout << "\tsgt " << res.GetRegName() << ", " << lhs.GetRegName() << ", " << rhs.GetRegName() << endl;
+        cout << "\tseqz " << res.GetRegName() << ", " << res.GetRegName() << endl;
+        break;
+    case KOOPA_RBO_GE:
+        cout << "\tslt " << res.GetRegName() << ", " << lhs.GetRegName() << ", " << rhs.GetRegName() << endl;
+        cout << "\tseqz " << res.GetRegName() << ", " << res.GetRegName() << endl;
+        break;
+    case KOOPA_RBO_LT:
+        cout << "\tslt " << res.GetRegName() << ", " << lhs.GetRegName() << ", " << rhs.GetRegName() << endl;
+        break;
+    case KOOPA_RBO_GT:
+        cout << "\tsgt " << res.GetRegName() << ", " << lhs.GetRegName() << ", " << rhs.GetRegName() << endl;
+        break;
+    case KOOPA_RBO_AND:
+        cout << "\tand " << res.GetRegName() << ", " << lhs.GetRegName() << ", " << rhs.GetRegName() << endl;
+        break;
+    case KOOPA_RBO_OR:
+        cout << "\tor " << res.GetRegName() << ", " << lhs.GetRegName() << ", " << rhs.GetRegName() << endl;
+        break;
+    
     default:
         cout << "Unknown op:" << binary.op << endl;
         assert(false);
