@@ -67,6 +67,11 @@ int main(int argc, const char *argv[])
         freopen(output, "w", stdout);
         ast->Dump();
     }
+    else if((string)mode=="-calc")
+    {
+        cout<<ast->CalcExp()<<endl;
+
+    }
     else
     {
         cout << mode << endl;

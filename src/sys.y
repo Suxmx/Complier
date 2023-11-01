@@ -37,7 +37,7 @@ using namespace std;
 
 // lexer 返回的所有 token 种类的声明
 // 注意 IDENT 和 INT_CONST 会返回 token 的值, 分别对应 str_val 和 int_val
-%token INT RETURN LESS LARGER AND OR LESSEQ LARGEREQ EQ NE
+%token INT RETURN LESS LARGER AND OR LESSEQ LARGEREQ EQ NE CONST
 %token <str_val> IDENT
 %token <int_val> INT_CONST
 
@@ -82,14 +82,51 @@ FuncDef
   ;
 
 // 同上, 不再解释 
-FuncType
+/* FuncType
   : INT {
     auto funcType=new FuncTypeAST();
     funcType->type="int";
     $$ = funcType;
   }
   ;
+Decl
+  :ConstDecl
+  {
 
+  };
+ConstDecl
+  :CONST BType ConstDefList
+  {
+
+  };
+BType
+  :INT
+  {
+
+  };
+ConstDefList
+  :ConstDef{
+
+  }
+  |ConstDefList ',' ConstDef
+  {
+
+  };
+ConstDef
+  :IDENT '=' ConstInitVal
+  {
+
+  };
+ConstInitVal
+  :ConstExp
+  {
+
+  };
+ConstExp
+  :Exp
+  {
+
+  } */
 Block
   : '{' Stmt '}' {
     auto block=new BlockAST();
@@ -97,6 +134,30 @@ Block
     $$ = block;
   }
   ;
+/* BlockItem
+  :Decl
+  {
+
+  }
+  |Stmt
+  {
+
+  }
+BlockItemList
+  :BlockItem
+  {
+
+  }
+  |BlockItemList  BlockItem
+  {
+
+  };
+LVal
+  :IDENT
+  {
+
+  }         */
+                                                                       
 
 Stmt
   : RETURN Exp ';' {
@@ -160,7 +221,12 @@ PrimaryExp
     primaryExp->type = EPrimaryExp::Number;
     primaryExp->num = $1;
     $$ = primaryExp;
-  };
+  }
+  /* |LVal
+  {
+    
+  }
+  ; */
 AddOp
   :'+'
   {

@@ -62,7 +62,11 @@ enum class ELOrExp
     Single,
     Double
 };
-
+enum class EBlockType
+{
+    Stmt,
+    Decl
+};
 inline string PrintOp(EOp op)
 {
     vector<string> opes = {"+", "-", "*", "/", "%", "<", ">", "<=", ">=", "==", "!=", "&&", "||"};

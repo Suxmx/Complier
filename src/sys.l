@@ -36,6 +36,7 @@ Ne            "!="
 Decimal       [1-9][0-9]*
 Octal         0[0-7]*
 Hexadecimal   0[xX][0-9a-fA-F]+
+Const         "const"
 
 %%
 
@@ -45,7 +46,7 @@ Hexadecimal   0[xX][0-9a-fA-F]+
 
 "int"           { return INT; }
 "return"        { return RETURN; }
-
+{Const}         { return CONST; }
 {Identifier}    { yylval.str_val = new string(yytext); return IDENT; }
 
 {LessEq}        { return LESSEQ; }

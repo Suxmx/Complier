@@ -12,6 +12,7 @@ public:
     virtual ~BaseAST() = default;
     virtual void Dump() const = 0;
     virtual string DumpIR() const = 0;
+    virtual int CalcExp() { return 0; }
 };
 
 class CompUnitAST : public BaseAST
@@ -27,6 +28,10 @@ public:
     string DumpIR() const override
     {
         return funcDef->DumpIR();
+    }
+    int CalcExp() override
+    {
+        return funcDef->CalcExp();
     }
 };
 
@@ -54,6 +59,10 @@ public:
              << "}";
         return "";
     }
+    int CalcExp() override
+    {
+        return block->CalcExp();
+    }
 };
 class FuncTypeAST : public BaseAST
 {
@@ -73,6 +82,7 @@ class BlockAST : public BaseAST
 {
 public:
     unique_ptr<BaseAST> stmt;
+    unique_ptr<BaseAST> decl;
     void Dump() const override
     {
         cout << "BlockAST { ";
@@ -83,6 +93,10 @@ public:
     {
         cout << "\%entry:" << endl;
         return stmt->DumpIR();
+    }
+    int CalcExp() override
+    {
+        return stmt->CalcExp();   
     }
 };
 class StmtAST : public BaseAST
@@ -102,6 +116,10 @@ public:
         cout << "\tret " << resultReg << endl;
         return "";
     }
+    int CalcExp() override
+    {
+        return exp->CalcExp();   
+    }
 };
 
 class ExpAST : public BaseAST
@@ -117,6 +135,10 @@ public:
     string DumpIR() const override
     {
         return unaryExp->DumpIR();
+    }
+    int CalcExp() override
+    {
+        return unaryExp->CalcExp();
     }
 };
 class PrimaryExpAST : public BaseAST
@@ -150,6 +172,13 @@ public:
         {
             return exp->DumpIR();
         }
+    }
+    int CalcExp() override
+    {
+        if (type == EPrimaryExp::Exp)
+            return exp->CalcExp();
+        else
+            return num;
     }
 };
 class UnaryExpAST : public BaseAST
@@ -201,6 +230,20 @@ public:
             }
         }
         return "";
+    }
+    int CalcExp() override
+    {
+        if (type == EUnaryExp::PrimaryExp)
+            return primaryExp->CalcExp();
+        else
+        {
+            if (op == '+')
+                return unaryExp->CalcExp();
+            else if (op == '-')
+                return -1 * unaryExp->CalcExp();
+            else if (op == '!')
+                return !unaryExp->CalcExp();
+        }
     }
 };
 class MulExpAST : public BaseAST
@@ -258,6 +301,20 @@ public:
         }
         return "";
     }
+    int CalcExp() override
+    {
+        if (type == EMulExp::Single)
+            return unaryExp->CalcExp();
+        else
+        {
+            if (op == EOp::Mul)
+                return lhs->CalcExp() * rhs->CalcExp();
+            else if (op == EOp::Div)
+                return lhs->CalcExp() / rhs->CalcExp();
+            else if (op == EOp::Mod)
+                return lhs->CalcExp() % rhs->CalcExp();
+        }
+    }
 };
 class AddExpAST : public BaseAST
 {
@@ -307,6 +364,18 @@ public:
             }
         }
         return "";
+    }
+    int CalcExp() override
+    {
+        if (type == EAddExp::Single)
+            return mulExp->CalcExp();
+        else
+        {
+            if (op == EOp::Add)
+                return lhs->CalcExp() + rhs->CalcExp();
+            else if (op == EOp::Sub)
+                return lhs->CalcExp() - rhs->CalcExp();
+        }
     }
 };
 class RelExpAST : public BaseAST
@@ -368,6 +437,22 @@ public:
         }
         return "";
     }
+    int CalcExp() override
+    {
+        if (type == ERelExp::Single)
+            return single->CalcExp();
+        else
+        {
+            if (op == EOp::Less)
+                return lhs->CalcExp() < rhs->CalcExp();
+            else if (op == EOp::Larger)
+                return lhs->CalcExp() > rhs->CalcExp();
+            else if (op == EOp::LargerEq)
+                return lhs->CalcExp() >= rhs->CalcExp();
+            else if (op == EOp::LessEq)
+                return lhs->CalcExp() <= rhs->CalcExp();
+        }
+    }
 };
 class EqExpAST : public BaseAST
 {
@@ -418,6 +503,18 @@ public:
         }
         return "";
     }
+    int CalcExp() override
+    {
+        if (type == EEqExp::Single)
+            return single->CalcExp();
+        else
+        {
+            if (op == EOp::Eq)
+                return lhs->CalcExp() == rhs->CalcExp();
+            else if (op == EOp::Ne)
+                return lhs->CalcExp() != rhs->CalcExp();
+        }
+    }
 };
 class LAndExpAST : public BaseAST
 {
@@ -455,11 +552,11 @@ public:
             string rCalcReg = rhs->DumpIR();
             string resultReg = "%" + to_string(expNum);
             expNum++;
-            string tmpLReg="%" + to_string(expNum);
+            string tmpLReg = "%" + to_string(expNum);
             cout << "\t" << tmpLReg << " = ne " << lCalcReg << ", "
                  << "0" << endl;
             expNum++;
-            string tmpRReg="%" + to_string(expNum);   
+            string tmpRReg = "%" + to_string(expNum);
             cout << "\t" << tmpRReg << " = ne " << rCalcReg << ", "
                  << "0" << endl;
             cout << "\t" << resultReg << " = and" << tmpLReg << ", " << tmpRReg << endl;
@@ -468,6 +565,15 @@ public:
         }
 
         return "";
+    }
+    int CalcExp() override
+    {
+        if (type == ELAndExp::Single)
+            return single->CalcExp();
+        else
+        {
+            return lhs->CalcExp() && rhs->CalcExp();
+        }
     }
 };
 class LOrExpAST : public BaseAST
@@ -506,11 +612,11 @@ public:
             string rCalcReg = rhs->DumpIR();
             string resultReg = "%" + to_string(expNum);
             expNum++;
-            string tmpLReg="%" + to_string(expNum);
+            string tmpLReg = "%" + to_string(expNum);
             cout << "\t" << tmpLReg << " = ne " << lCalcReg << ", "
                  << "0" << endl;
             expNum++;
-            string tmpRReg="%" + to_string(expNum);   
+            string tmpRReg = "%" + to_string(expNum);
             cout << "\t" << tmpRReg << " = ne " << rCalcReg << ", "
                  << "0" << endl;
             cout << "\t" << resultReg << " = or" << tmpLReg << ", " << tmpRReg << endl;
@@ -518,5 +624,12 @@ public:
             return resultReg;
         }
         return "";
+    }
+    int CalcExp() override
+    {
+        if (type == ELOrExp::Single)
+            return single->CalcExp();
+        else
+            return lhs->CalcExp() || rhs->CalcExp();
     }
 };
