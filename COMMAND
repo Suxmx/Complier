@@ -5,3 +5,7 @@ build/compiler -koopa hello.c -o hello.koopa
 build/compiler -dump hello.c -o hello.dump
 
 build/compiler -riscv hello.c -o hello.riscv
+
+cd builc && rm compiler && wget https://github.com/Suxmx/Complier/releases/download/build/compiler
+
+git push -f origin main:buildBranch

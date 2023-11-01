@@ -82,13 +82,13 @@ FuncDef
   ;
 
 // 同上, 不再解释 
-/* FuncType
+FuncType
   : INT {
     auto funcType=new FuncTypeAST();
     funcType->type="int";
     $$ = funcType;
   }
-  ;
+  /* ;
 Decl
   :ConstDecl
   {
