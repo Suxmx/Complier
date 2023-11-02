@@ -8,7 +8,7 @@
 using namespace std;
 
 static int expNum = 0;
-static map<string,int> LVals;
+static map<string, int> LVals;
 class BaseAST
 {
 public:
@@ -90,7 +90,10 @@ public:
     void Dump() const override
     {
         cout << "BlockAST { ";
-        stmt->Dump();
+        for (const auto &item : *itemList)
+        {
+            item->Dump();
+        }
         cout << " }";
     }
     string DumpIR() const override
@@ -151,6 +154,7 @@ public:
     unique_ptr<BaseAST> exp;
     EPrimaryExp type;
     int num;
+    string lval;
     void Dump() const override
     {
         cout << "PrimaryExpAST { ";
@@ -644,6 +648,9 @@ public:
     unique_ptr<BaseAST> decl;
     void Dump() const override
     {
+        cout << "DeclAST { ";
+        decl->Dump();
+        cout << " } ";
     }
     string DumpIR() const override
     {
@@ -658,6 +665,12 @@ public:
     unique_ptr<vector<unique_ptr<BaseAST>>> defs;
     void Dump() const override
     {
+        cout << "ConstDeclAST { ";
+        for (const auto &def : *defs)
+        {
+            def->Dump();
+        }
+        cout << " } ";
     }
     string DumpIR() const override
     {
@@ -672,6 +685,10 @@ public:
     unique_ptr<BaseAST> initVal;
     void Dump() const override
     {
+        cout << "ConstDefAST { ";
+        cout << "Ident: " << ident << " Initval: ";
+        initVal->Dump();
+        cout << " } ";
     }
     string DumpIR() const override
     {
@@ -685,6 +702,9 @@ public:
     unique_ptr<BaseAST> constExp;
     void Dump() const override
     {
+        cout << "ConstInitValAST { ";
+        constExp->Dump();
+        cout << " } ";
     }
     string DumpIR() const override
     {
@@ -698,6 +718,9 @@ public:
     unique_ptr<BaseAST> exp;
     void Dump() const override
     {
+        cout << "ConstExpAST { ";
+        exp->Dump();
+        cout << " } ";
     }
     string DumpIR() const override
     {
@@ -712,6 +735,9 @@ public:
     unique_ptr<BaseAST> item;
     void Dump() const override
     {
+        cout << "BlockItemAST { ";
+        item->Dump();
+        cout << " } ";
     }
     string DumpIR() const override
     {
@@ -722,13 +748,20 @@ public:
 class BlockItemListAST : public BaseAST
 {
 public:
-    unique_ptr<BaseAST> itemList;
+    unique_ptr<vector<unique_ptr<BaseAST>>> itemList;
     void Dump() const override
     {
+        cout << "ConstDeclAST { ";
+        for (const auto &item : *itemList)
+        {
+            item->Dump();
+            cout << ",";
+        }
+        cout << " } ";
     }
     string DumpIR() const override
     {
 
         return "";
     }
-} ;
+};

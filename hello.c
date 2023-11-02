@@ -1,3 +1,4 @@
 int main() {
-  return 5+(5*6)/2+3;
+  const int x = 1 + 1;
+  return x;
 }

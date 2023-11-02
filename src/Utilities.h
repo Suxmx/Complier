@@ -13,7 +13,8 @@ enum class EUnaryExp
 enum class EPrimaryExp
 {
     Exp,
-    Number
+    Number,
+    LVal
 };
 enum class EAddExp
 {

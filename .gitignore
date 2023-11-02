@@ -2,3 +2,5 @@
 /build
 .vscode
 .idea
+hello.c
+hello.dump

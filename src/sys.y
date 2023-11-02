@@ -44,9 +44,9 @@ using namespace std;
 
 // 非终结符的类型定义
 %type <ast_val> FuncDef FuncType Block Stmt PrimaryExp UnaryExp Exp AddExp MulExp RelExp EqExp LAndExp LOrExp
-%type <ast_val> Decl ConstDecl ConstDef ConstInitVal BlockItem ConstExp LVal
+%type <ast_val> Decl ConstDecl ConstDef ConstInitVal BlockItem ConstExp 
 %type <int_val> Number AddOp MulOp RelOp EqOp LAndOp LOrOp BType
-%type <str_val> UnaryOp 
+%type <str_val> UnaryOp LVal
 %type <vec_val> BlockItemList ConstDefList
 %%
 
@@ -100,7 +100,7 @@ Decl
     $$ = decl;
   };
 ConstDecl
-  :CONST BType ConstDefList
+  :CONST BType ConstDefList ';'
   {
     auto constDecl = new ConstDeclAST();
     constDecl->type = (EBType)($2);
@@ -128,20 +128,28 @@ ConstDefList
 ConstDef
   :IDENT '=' ConstInitVal
   {
-
+    auto def = new ConstDefAST();
+    def->ident = (*unique_ptr<string>($1));
+    def->initVal = unique_ptr<BaseAST>($3);
+    $$ = def;
   };
 ConstInitVal
   :ConstExp
   {
-
+    auto init= new ConstInitValAST();
+    init->constExp = unique_ptr<BaseAST>($1);
+    $$ = init;
   };
 ConstExp
   :Exp
   {
-
+    auto exp = new ConstExpAST();
+    exp->exp = unique_ptr<BaseAST>($1);
+    $$ = exp;
   }
 Block
   : '{' BlockItemList '}' {
+    cout<<"new block"<<endl;
     auto block=new BlockAST();
     block->itemList = unique_ptr<vector<unique_ptr<BaseAST>>>($2);
     $$ = block;
@@ -150,30 +158,45 @@ Block
 BlockItem
   :Decl
   {
-
+    cout<<"new decl block"<<endl;
+    auto item = new BlockItemAST();
+    item->type = EBlockItem::Decl;
+    item->item = unique_ptr<BaseAST>($1);
+    $$ = item;
   }
   |Stmt
   {
-
-  }
+    cout<<"new stmt block"<<endl;
+    auto item = new BlockItemAST();
+    item->type = EBlockItem::Stmt;
+    item->item = unique_ptr<BaseAST>($1);
+    $$ = item;
+  };
 BlockItemList
   :BlockItem
   {
-
+    auto list = new vector<unique_ptr<BaseAST>>();
+    list->push_back(unique_ptr<BaseAST>($1));
+    cout<<"new block list"<<endl;
+    $$ = list;
   }
   |BlockItemList  BlockItem
   {
-
+    cout<<"list push back";
+    auto list = $1;
+    list->push_back(unique_ptr<BaseAST>($2));
+    $$ = list;
   };
 LVal
   :IDENT
   {
-
+    $$ = $1;
   }         
                                                                        
 
 Stmt
   : RETURN Exp ';' {
+    cout<<"new stmt"<<endl;
     auto stmt=new StmtAST();
     stmt->exp = unique_ptr<BaseAST>($2);
     $$ = stmt;
@@ -235,11 +258,14 @@ PrimaryExp
     primaryExp->num = $1;
     $$ = primaryExp;
   }
-  /* |LVal
+  |LVal
   {
-    
+    auto primaryExp = new PrimaryExpAST();
+    primaryExp->type = EPrimaryExp::LVal;
+    primaryExp->lval = (*unique_ptr<string>($1));
+    $$ = primaryExp; 
   }
-  ; */
+  ;
 AddOp
   :'+'
   {
@@ -252,7 +278,6 @@ AddOp
 MulOp
   :'*'
   {
-
     $$ = 3;
   }
   |'/'
