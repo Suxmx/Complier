@@ -7,3 +7,4 @@ hello.dump
 hello.riscv
 hello.koopa
 COMMAND
+.vscode/settings.json
