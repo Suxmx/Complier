@@ -149,7 +149,6 @@ ConstExp
   }
 Block
   : '{' BlockItemList '}' {
-    cout<<"new block"<<endl;
     auto block=new BlockAST();
     block->itemList = unique_ptr<vector<unique_ptr<BaseAST>>>($2);
     $$ = block;
@@ -158,7 +157,6 @@ Block
 BlockItem
   :Decl
   {
-    cout<<"new decl block"<<endl;
     auto item = new BlockItemAST();
     item->type = EBlockItem::Decl;
     item->item = unique_ptr<BaseAST>($1);
@@ -166,7 +164,6 @@ BlockItem
   }
   |Stmt
   {
-    cout<<"new stmt block"<<endl;
     auto item = new BlockItemAST();
     item->type = EBlockItem::Stmt;
     item->item = unique_ptr<BaseAST>($1);
@@ -177,12 +174,10 @@ BlockItemList
   {
     auto list = new vector<unique_ptr<BaseAST>>();
     list->push_back(unique_ptr<BaseAST>($1));
-    cout<<"new block list"<<endl;
     $$ = list;
   }
   |BlockItemList  BlockItem
   {
-    cout<<"list push back";
     auto list = $1;
     list->push_back(unique_ptr<BaseAST>($2));
     $$ = list;
@@ -196,7 +191,6 @@ LVal
 
 Stmt
   : RETURN Exp ';' {
-    cout<<"new stmt"<<endl;
     auto stmt=new StmtAST();
     stmt->exp = unique_ptr<BaseAST>($2);
     $$ = stmt;

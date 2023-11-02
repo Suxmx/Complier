@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <cassert>
 #include "Utilities.h"
 
 using namespace std;
@@ -99,7 +100,11 @@ public:
     string DumpIR() const override
     {
         cout << "\%entry:" << endl;
-        return stmt->DumpIR();
+        for (const auto &item : *itemList)
+        {
+            item->DumpIR();
+        }
+        return "";
     }
     int CalcExp() override
     {
@@ -176,18 +181,31 @@ public:
         {
             return to_string(num);
         }
-        else
+        else if (type == EPrimaryExp::Exp)
         {
             return exp->DumpIR();
         }
+        else if (type == EPrimaryExp::LVal)
+        {
+            assert(LVals.count(lval));
+            return to_string(LVals[lval]);
+        }
+        return "";
     }
     int CalcExp() override
     {
         if (type == EPrimaryExp::Exp)
             return exp->CalcExp();
-        else
+        else if (type == EPrimaryExp::Number)
             return num;
+        else if (type == EPrimaryExp::LVal)
+        {
+            assert(LVals.count(lval));
+            return LVals[lval];
+        }
+        return 0;
     }
+    
 };
 class UnaryExpAST : public BaseAST
 {
@@ -252,6 +270,7 @@ public:
             else if (op == '!')
                 return !unaryExp->CalcExp();
         }
+        return 0;
     }
 };
 class MulExpAST : public BaseAST
@@ -322,6 +341,7 @@ public:
             else if (op == EOp::Mod)
                 return lhs->CalcExp() % rhs->CalcExp();
         }
+        return 0;
     }
 };
 class AddExpAST : public BaseAST
@@ -384,6 +404,7 @@ public:
             else if (op == EOp::Sub)
                 return lhs->CalcExp() - rhs->CalcExp();
         }
+        return 0;
     }
 };
 class RelExpAST : public BaseAST
@@ -460,6 +481,7 @@ public:
             else if (op == EOp::LessEq)
                 return lhs->CalcExp() <= rhs->CalcExp();
         }
+        return 0;
     }
 };
 class EqExpAST : public BaseAST
@@ -522,6 +544,7 @@ public:
             else if (op == EOp::Ne)
                 return lhs->CalcExp() != rhs->CalcExp();
         }
+        return 0;
     }
 };
 class LAndExpAST : public BaseAST
@@ -654,7 +677,7 @@ public:
     }
     string DumpIR() const override
     {
-
+        decl->DumpIR();
         return "";
     }
 };
@@ -674,7 +697,10 @@ public:
     }
     string DumpIR() const override
     {
-
+        for (const auto &def : *defs)
+        {
+            def->DumpIR();
+        }
         return "";
     }
 };
@@ -692,7 +718,8 @@ public:
     }
     string DumpIR() const override
     {
-
+        assert(!LVals.count(ident));
+        LVals[ident] = initVal->CalcExp();
         return "";
     }
 };
@@ -711,6 +738,10 @@ public:
 
         return "";
     }
+    int CalcExp() override
+    {
+        return constExp->CalcExp();
+    }
 };
 class ConstExpAST : public BaseAST
 {
@@ -727,6 +758,10 @@ public:
 
         return "";
     }
+    int CalcExp() override
+    {
+        return exp->CalcExp();
+    }
 };
 class BlockItemAST : public BaseAST
 {
@@ -741,27 +776,7 @@ public:
     }
     string DumpIR() const override
     {
-
-        return "";
-    }
-};
-class BlockItemListAST : public BaseAST
-{
-public:
-    unique_ptr<vector<unique_ptr<BaseAST>>> itemList;
-    void Dump() const override
-    {
-        cout << "ConstDeclAST { ";
-        for (const auto &item : *itemList)
-        {
-            item->Dump();
-            cout << ",";
-        }
-        cout << " } ";
-    }
-    string DumpIR() const override
-    {
-
+        item->DumpIR();
         return "";
     }
 };
