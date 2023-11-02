@@ -4,3 +4,5 @@
 .idea
 hello.c
 hello.dump
+hello.riscv
+hello.koopa
