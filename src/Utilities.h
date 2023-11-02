@@ -67,6 +67,16 @@ enum class EBlockType
     Stmt,
     Decl
 };
+enum class EDecl{
+    ConstDecl
+};
+enum class EBType{
+    Int=1
+};
+enum class EBlockItem{
+    Decl,
+    Stmt
+}; 
 inline string PrintOp(EOp op)
 {
     vector<string> opes = {"+", "-", "*", "/", "%", "<", ">", "<=", ">=", "==", "!=", "&&", "||"};

@@ -33,6 +33,7 @@ using namespace std;
   std::string *str_val;
   int int_val;
   BaseAST *ast_val;
+  vector<unique_ptr<BaseAST>> *vec_val;
 }
 
 // lexer 返回的所有 token 种类的声明
@@ -43,8 +44,10 @@ using namespace std;
 
 // 非终结符的类型定义
 %type <ast_val> FuncDef FuncType Block Stmt PrimaryExp UnaryExp Exp AddExp MulExp RelExp EqExp LAndExp LOrExp
-%type <int_val> Number AddOp MulOp RelOp EqOp LAndOp LOrOp
+%type <ast_val> Decl ConstDecl ConstDef ConstInitVal BlockItem ConstExp LVal
+%type <int_val> Number AddOp MulOp RelOp EqOp LAndOp LOrOp BType
 %type <str_val> UnaryOp 
+%type <vec_val> BlockItemList ConstDefList
 %%
 
 // 开始符, CompUnit ::= FuncDef, 大括号后声明了解析完成后 parser 要做的事情
@@ -88,29 +91,39 @@ FuncType
     funcType->type="int";
     $$ = funcType;
   }
-  /* ;
+  ;
 Decl
   :ConstDecl
   {
-
+    auto decl = new DeclAST();
+    decl->decl = unique_ptr<BaseAST>($1);
+    $$ = decl;
   };
 ConstDecl
   :CONST BType ConstDefList
   {
-
+    auto constDecl = new ConstDeclAST();
+    constDecl->type = (EBType)($2);
+    constDecl->defs = unique_ptr<vector<unique_ptr<BaseAST>>>($3);
+    $$ = constDecl;
   };
 BType
   :INT
   {
-
+    $$ = 1;
   };
 ConstDefList
-  :ConstDef{
-
+  :ConstDef
+  {
+    auto list = new vector<unique_ptr<BaseAST>>();
+    list->push_back(unique_ptr<BaseAST>($1));
+    $$ = list;
   }
   |ConstDefList ',' ConstDef
   {
-
+    auto list = $1;
+    list->push_back(unique_ptr<BaseAST>($3));
+    $$ = list;
   };
 ConstDef
   :IDENT '=' ConstInitVal
@@ -126,15 +139,15 @@ ConstExp
   :Exp
   {
 
-  } */
+  }
 Block
-  : '{' Stmt '}' {
+  : '{' BlockItemList '}' {
     auto block=new BlockAST();
-    block->stmt = unique_ptr<BaseAST>($2);
+    block->itemList = unique_ptr<vector<unique_ptr<BaseAST>>>($2);
     $$ = block;
   }
   ;
-/* BlockItem
+BlockItem
   :Decl
   {
 
@@ -156,7 +169,7 @@ LVal
   :IDENT
   {
 
-  }         */
+  }         
                                                                        
 
 Stmt

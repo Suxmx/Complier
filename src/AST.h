@@ -1,11 +1,14 @@
 #pragma once
 #include <memory>
 #include <iostream>
+#include <vector>
+#include <map>
 #include "Utilities.h"
 
 using namespace std;
 
 static int expNum = 0;
+static map<string,int> LVals;
 class BaseAST
 {
 public:
@@ -83,6 +86,7 @@ class BlockAST : public BaseAST
 public:
     unique_ptr<BaseAST> stmt;
     unique_ptr<BaseAST> decl;
+    unique_ptr<vector<unique_ptr<BaseAST>>> itemList;
     void Dump() const override
     {
         cout << "BlockAST { ";
@@ -96,7 +100,7 @@ public:
     }
     int CalcExp() override
     {
-        return stmt->CalcExp();   
+        return stmt->CalcExp();
     }
 };
 class StmtAST : public BaseAST
@@ -118,7 +122,7 @@ public:
     }
     int CalcExp() override
     {
-        return exp->CalcExp();   
+        return exp->CalcExp();
     }
 };
 
@@ -633,3 +637,98 @@ public:
             return lhs->CalcExp() || rhs->CalcExp();
     }
 };
+class DeclAST : public BaseAST
+{
+public:
+    EDecl type;
+    unique_ptr<BaseAST> decl;
+    void Dump() const override
+    {
+    }
+    string DumpIR() const override
+    {
+
+        return "";
+    }
+};
+class ConstDeclAST : public BaseAST
+{
+public:
+    EBType type;
+    unique_ptr<vector<unique_ptr<BaseAST>>> defs;
+    void Dump() const override
+    {
+    }
+    string DumpIR() const override
+    {
+
+        return "";
+    }
+};
+class ConstDefAST : public BaseAST
+{
+public:
+    string ident;
+    unique_ptr<BaseAST> initVal;
+    void Dump() const override
+    {
+    }
+    string DumpIR() const override
+    {
+
+        return "";
+    }
+};
+class ConstInitValAST : public BaseAST
+{
+public:
+    unique_ptr<BaseAST> constExp;
+    void Dump() const override
+    {
+    }
+    string DumpIR() const override
+    {
+
+        return "";
+    }
+};
+class ConstExpAST : public BaseAST
+{
+public:
+    unique_ptr<BaseAST> exp;
+    void Dump() const override
+    {
+    }
+    string DumpIR() const override
+    {
+
+        return "";
+    }
+};
+class BlockItemAST : public BaseAST
+{
+public:
+    EBlockItem type;
+    unique_ptr<BaseAST> item;
+    void Dump() const override
+    {
+    }
+    string DumpIR() const override
+    {
+
+        return "";
+    }
+};
+class BlockItemListAST : public BaseAST
+{
+public:
+    unique_ptr<BaseAST> itemList;
+    void Dump() const override
+    {
+    }
+    string DumpIR() const override
+    {
+
+        return "";
+    }
+} ;
