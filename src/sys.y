@@ -44,10 +44,10 @@ using namespace std;
 
 // 非终结符的类型定义
 %type <ast_val> FuncDef FuncType Block Stmt PrimaryExp UnaryExp Exp AddExp MulExp RelExp EqExp LAndExp LOrExp
-%type <ast_val> Decl ConstDecl ConstDef ConstInitVal BlockItem ConstExp 
+%type <ast_val> Decl ConstDecl ConstDef InitVal BlockItem  VarDecl VarDef
 %type <int_val> Number AddOp MulOp RelOp EqOp LAndOp LOrOp BType
 %type <str_val> UnaryOp LVal
-%type <vec_val> BlockItemList ConstDefList
+%type <vec_val> BlockItemList ConstDefList VarDefList
 %%
 
 // 开始符, CompUnit ::= FuncDef, 大括号后声明了解析完成后 parser 要做的事情
@@ -98,7 +98,14 @@ Decl
     auto decl = new DeclAST();
     decl->decl = unique_ptr<BaseAST>($1);
     $$ = decl;
-  };
+  }
+  |VarDecl
+  {
+    auto decl = new DeclAST();
+    decl->decl = unique_ptr<BaseAST>($1);
+    $$ = decl;
+  }
+  ;
 ConstDecl
   :CONST BType ConstDefList ';'
   {
@@ -126,27 +133,57 @@ ConstDefList
     $$ = list;
   };
 ConstDef
-  :IDENT '=' ConstInitVal
+  :IDENT '=' InitVal
   {
     auto def = new ConstDefAST();
     def->ident = (*unique_ptr<string>($1));
     def->initVal = unique_ptr<BaseAST>($3);
+    
     $$ = def;
   };
-ConstInitVal
-  :ConstExp
-  {
-    auto init= new ConstInitValAST();
-    init->constExp = unique_ptr<BaseAST>($1);
-    $$ = init;
-  };
-ConstExp
+InitVal
   :Exp
   {
-    auto exp = new ConstExpAST();
-    exp->exp = unique_ptr<BaseAST>($1);
-    $$ = exp;
+    auto init= new InitValAST();
+    init->exp = unique_ptr<BaseAST>($1);
+    $$ = init;
+  };
+VarDecl 
+  :BType VarDefList ';'
+  {
+    auto decl = new VarDeclAST();
+    decl->type = (EBType)($1);
+    decl->defs = unique_ptr<vector<unique_ptr<BaseAST>>>($2);
+    $$ = decl;
   }
+VarDefList
+  :VarDef
+  {
+    auto list = new vector<unique_ptr<BaseAST>>();
+    list->push_back(unique_ptr<BaseAST>($1));
+    $$ = list;
+  }
+  |VarDefList ',' VarDef
+  {
+    auto list = $1;
+    list->push_back(unique_ptr<BaseAST>($3));
+    $$ = list;
+  }
+VarDef
+  :IDENT
+  {
+    auto def = new VarDefAST();
+    def->ident = (*unique_ptr<string>($1));
+    $$ = def;
+  }
+  |IDENT '=' InitVal
+  {
+    auto def = new VarDefAST();
+    def->ident = (*unique_ptr<string>($1));
+    def->initVal = unique_ptr<BaseAST>($3);
+    $$ = def;
+  }
+
 Block
   : '{' BlockItemList '}' {
     auto block=new BlockAST();
@@ -190,8 +227,17 @@ LVal
                                                                        
 
 Stmt
-  : RETURN Exp ';' {
+  :LVal '=' Exp ';'
+  {
     auto stmt=new StmtAST();
+    stmt->type = EStmt::Var;
+    stmt->exp = unique_ptr<BaseAST>($3);
+    stmt->lval = (*unique_ptr<string>($1));
+    $$ = stmt;
+  }
+  | RETURN Exp ';' {
+    auto stmt=new StmtAST();
+    stmt->type = EStmt::Return;
     stmt->exp = unique_ptr<BaseAST>($2);
     $$ = stmt;
   }

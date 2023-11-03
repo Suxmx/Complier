@@ -69,7 +69,8 @@ enum class EBlockType
     Decl
 };
 enum class EDecl{
-    ConstDecl
+    ConstDecl,
+    Variable
 };
 enum class EBType{
     Int=1
@@ -77,10 +78,20 @@ enum class EBType{
 enum class EBlockItem{
     Decl,
     Stmt
-}; 
+};
+enum class EStmt{
+    Return,
+    Var
+};
 inline string PrintOp(EOp op)
 {
     vector<string> opes = {"+", "-", "*", "/", "%", "<", ">", "<=", ">=", "==", "!=", "&&", "||"};
     return opes[(int)op - 1];
 }
+struct DeclData{
+    EDecl type;
+    string ident;
+    int constValue;
+    string varReg;
+};
 #endif

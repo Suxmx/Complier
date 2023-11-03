@@ -9,7 +9,7 @@
 using namespace std;
 
 static int expNum = 0;
-static map<string, int> LVals;
+static map<string, DeclData> LVals;
 class BaseAST
 {
 public:
@@ -114,8 +114,10 @@ public:
 class StmtAST : public BaseAST
 {
 public:
+    EStmt type;
     int num;
     unique_ptr<BaseAST> exp;
+    string lval;
     void Dump() const override
     {
         cout << "StmtAST { ";
@@ -124,8 +126,19 @@ public:
     }
     string DumpIR() const override
     {
-        string resultReg = exp->DumpIR();
-        cout << "\tret " << resultReg << endl;
+        if (type == EStmt::Return)
+        {
+            string resultReg = exp->DumpIR();
+            cout << "\tret " << resultReg << endl;
+        }
+        else if (type == EStmt::Var)
+        {
+            // cout<<"debug "<<lval<<"   "<<endl;
+            assert(LVals.count(lval));
+            auto data = &LVals[lval];
+            string res = exp->DumpIR();
+            cout << "\tstore " << res << ", @" << data->ident << endl;
+        }
         return "";
     }
     int CalcExp() override
@@ -188,7 +201,17 @@ public:
         else if (type == EPrimaryExp::LVal)
         {
             assert(LVals.count(lval));
-            return to_string(LVals[lval]);
+            DeclData *data = &LVals[lval];
+            if (data->type == EDecl::ConstDecl)
+            {
+                return to_string(data->constValue);
+            }
+            else if (data->type == EDecl::Variable)
+            {
+                string res = "%" + to_string(expNum++);
+                cout << "\t" << res << " = load @" << data->ident << endl;
+                return res;
+            }
         }
         return "";
     }
@@ -201,11 +224,13 @@ public:
         else if (type == EPrimaryExp::LVal)
         {
             assert(LVals.count(lval));
-            return LVals[lval];
+            DeclData *data = &LVals[lval];
+            if (data->type == EDecl::ConstDecl)
+                return data->constValue;
+        
         }
         return 0;
     }
-    
 };
 class UnaryExpAST : public BaseAST
 {
@@ -719,28 +744,29 @@ public:
     string DumpIR() const override
     {
         assert(!LVals.count(ident));
-        LVals[ident] = initVal->CalcExp();
+        DeclData data{EDecl::ConstDecl, ident, (initVal->CalcExp())};
+        LVals[ident] = data;
         return "";
     }
 };
-class ConstInitValAST : public BaseAST
+class InitValAST : public BaseAST
 {
 public:
-    unique_ptr<BaseAST> constExp;
+    unique_ptr<BaseAST> exp;
     void Dump() const override
     {
-        cout << "ConstInitValAST { ";
-        constExp->Dump();
+        cout << "InitValAST { ";
+        exp->Dump();
         cout << " } ";
     }
     string DumpIR() const override
     {
-
+        return exp->DumpIR();
         return "";
     }
     int CalcExp() override
     {
-        return constExp->CalcExp();
+        return exp->CalcExp();
     }
 };
 class ConstExpAST : public BaseAST
@@ -777,6 +803,56 @@ public:
     string DumpIR() const override
     {
         item->DumpIR();
+        return "";
+    }
+};
+class VarDeclAST : public BaseAST
+{
+public:
+    EBType type;
+    unique_ptr<vector<unique_ptr<BaseAST>>> defs;
+    void Dump() const override
+    {
+        cout << "VarDeclAST { ";
+        for (const auto &def : *defs)
+        {
+            def->Dump();
+            cout << ",";
+        }
+        cout << " } ";
+    }
+    string DumpIR() const override
+    {
+        for (const auto &def : *defs)
+        {
+            def->DumpIR();
+        }
+        return "";
+    }
+};
+class VarDefAST : public BaseAST
+{
+public:
+    string ident;
+    unique_ptr<BaseAST> initVal;
+    void Dump() const override
+    {
+        cout << "VarDefAST { ident: " << ident << ", initVal: ";
+        if (initVal)
+            cout << initVal->CalcExp();
+        else cout<<"0";
+        cout << " } ";
+    }
+    string DumpIR() const override
+    {
+        assert(!LVals.count(ident));
+        string value = "0";
+        if (initVal)
+            value = initVal->DumpIR();
+        auto data = DeclData{EDecl::Variable, ident, 0,value};
+        LVals[ident] = data;
+        cout << "\t@" << ident << " = alloc i32" << endl;
+        cout << "\tstore " << value << ", @" << ident << endl;
         return "";
     }
 };
