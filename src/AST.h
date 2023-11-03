@@ -25,7 +25,7 @@ public:
     unique_ptr<BaseAST> funcDef;
     void Dump() const override
     {
-        cout << "CompUnit { ";
+        cout << "CompUnit { "<<endl;
         funcDef->Dump();
         cout << " }";
     }
@@ -47,11 +47,11 @@ public:
     unique_ptr<BaseAST> block;
     void Dump() const override
     {
-        cout << "FuncDefAST { ";
+        cout << "FuncDefAST { "<<endl;
         funcType->Dump();
         cout << ", " << ident << ", ";
         block->Dump();
-        cout << " }";
+        cout << " }"<<endl;
     }
     string DumpIR() const override
     {
@@ -74,7 +74,7 @@ public:
     string type;
     void Dump() const override
     {
-        cout << "FuncType{ " << type << " }";
+        cout << "FuncType{ " << type << " }"<<endl;
     }
     string DumpIR() const override
     {
@@ -95,7 +95,7 @@ public:
         {
             item->Dump();
         }
-        cout << " }";
+        cout << " }"<<endl;
     }
     string DumpIR() const override
     {
@@ -120,9 +120,9 @@ public:
     string lval;
     void Dump() const override
     {
-        cout << "StmtAST { ";
+        cout << "StmtAST { "<<endl;
         exp->Dump();
-        cout << " }";
+        cout << " }"<<endl;
     }
     string DumpIR() const override
     {
@@ -153,9 +153,9 @@ public:
     unique_ptr<BaseAST> unaryExp;
     void Dump() const override
     {
-        cout << "ExpAST { ";
+        cout << "ExpAST { "<<endl;
         unaryExp->Dump();
-        cout << " } ";
+        cout << " } "<<endl;
     }
     string DumpIR() const override
     {
@@ -186,7 +186,11 @@ public:
             exp->Dump();
             cout << ")";
         }
-        cout << " }";
+        else if(type == EPrimaryExp::LVal)
+        {
+            cout<<lval;
+        }
+        cout << " }"<<endl;
     }
     string DumpIR() const override
     {
@@ -227,7 +231,6 @@ public:
             DeclData *data = &LVals[lval];
             if (data->type == EDecl::ConstDecl)
                 return data->constValue;
-        
         }
         return 0;
     }
@@ -241,7 +244,7 @@ public:
     char op;
     void Dump() const override
     {
-        cout << "UnaryExpAST { ";
+        cout << "UnaryExpAST { "<<endl;
         if (type == EUnaryExp::PrimaryExp)
         {
             primaryExp->Dump();
@@ -251,7 +254,7 @@ public:
             cout << op << " ";
             unaryExp->Dump();
         }
-        cout << " } ";
+        cout << " } "<<endl;
     }
     string DumpIR() const override
     {
@@ -309,7 +312,7 @@ public:
     EOp op;
     void Dump() const override
     {
-        cout << "MulExpAST { ";
+        cout << "MulExpAST { "<<endl;
         if (type == EMulExp::Single)
         {
             unaryExp->Dump();
@@ -320,7 +323,7 @@ public:
             cout << PrintOp(op) << " ";
             rhs->Dump();
         }
-        cout << " } ";
+        cout << " } "<<endl;
     }
     string DumpIR() const override
     {
@@ -380,7 +383,7 @@ public:
     EOp op;
     void Dump() const override
     {
-        cout << "AddExpAST { ";
+        cout << "AddExpAST { "<<endl;
         if (type == EAddExp::Single)
         {
             mulExp->Dump();
@@ -391,7 +394,7 @@ public:
             cout << PrintOp(op) << " ";
             rhs->Dump();
         }
-        cout << " } ";
+        cout << " } "<<endl;
     }
     string DumpIR() const override
     {
@@ -442,18 +445,18 @@ public:
     unique_ptr<BaseAST> rhs;
     void Dump() const override
     {
-        cout << "RelExpAST { ";
+        cout << "RelExpAST { "<<endl;
         if (type == ERelExp::Single)
         {
             single->Dump();
-            cout << " } ";
+            cout << " } "<<endl;
         }
         else if (type == ERelExp::Double)
         {
             lhs->Dump();
             cout << " " << PrintOp(op);
             rhs->Dump();
-            cout << " }";
+            cout << " }"<<endl;
         }
     }
     string DumpIR() const override
@@ -519,18 +522,18 @@ public:
     unique_ptr<BaseAST> rhs;
     void Dump() const override
     {
-        cout << "EqExpAST { ";
+        cout << "EqExpAST { "<<endl;
         if (type == EEqExp::Single)
         {
             single->Dump();
-            cout << " } ";
+            cout << " } "<<endl;
         }
         else if (type == EEqExp::Double)
         {
             lhs->Dump();
             cout << " " << PrintOp(op);
             rhs->Dump();
-            cout << " }";
+            cout << " }"<<endl;
         }
     }
     string DumpIR() const override
@@ -582,18 +585,18 @@ public:
     unique_ptr<BaseAST> rhs;
     void Dump() const override
     {
-        cout << "LAndExpAST { ";
+        cout << "LAndExpAST { "<<endl;
         if (type == ELAndExp::Single)
         {
             single->Dump();
-            cout << " } ";
+            cout << " } "<<endl;
         }
         else if (type == ELAndExp::Double)
         {
             lhs->Dump();
             cout << " " << PrintOp(op);
             rhs->Dump();
-            cout << " }";
+            cout << " }"<<endl;
         }
     }
     string DumpIR() const override
@@ -642,18 +645,18 @@ public:
     unique_ptr<BaseAST> rhs;
     void Dump() const override
     {
-        cout << "LOrExpAST { ";
+        cout << "LOrExpAST { "<<endl;
         if (type == ELOrExp::Single)
         {
             single->Dump();
-            cout << " } ";
+            cout << " } "<<endl;
         }
         else if (type == ELOrExp::Double)
         {
             lhs->Dump();
             cout << " " << PrintOp(op);
             rhs->Dump();
-            cout << " }";
+            cout << " }"<<endl;
         }
     }
     string DumpIR() const override
@@ -696,9 +699,9 @@ public:
     unique_ptr<BaseAST> decl;
     void Dump() const override
     {
-        cout << "DeclAST { ";
+        cout << "DeclAST { "<<endl;
         decl->Dump();
-        cout << " } ";
+        cout << " } "<<endl;
     }
     string DumpIR() const override
     {
@@ -713,12 +716,13 @@ public:
     unique_ptr<vector<unique_ptr<BaseAST>>> defs;
     void Dump() const override
     {
-        cout << "ConstDeclAST { ";
+        cout << "ConstDeclAST { "<<endl;
         for (const auto &def : *defs)
         {
             def->Dump();
+            cout<<endl;
         }
-        cout << " } ";
+        cout << " } "<<endl;
     }
     string DumpIR() const override
     {
@@ -736,10 +740,12 @@ public:
     unique_ptr<BaseAST> initVal;
     void Dump() const override
     {
-        cout << "ConstDefAST { ";
+        DeclData data{EDecl::ConstDecl, ident, (initVal->CalcExp())};
+        LVals[ident] = data;
+        cout << "ConstDefAST { "<<endl;
         cout << "Ident: " << ident << " Initval: ";
         initVal->Dump();
-        cout << " } ";
+        cout << " } "<<endl;
     }
     string DumpIR() const override
     {
@@ -755,9 +761,9 @@ public:
     unique_ptr<BaseAST> exp;
     void Dump() const override
     {
-        cout << "InitValAST { ";
-        exp->Dump();
-        cout << " } ";
+        cout << "InitValAST { " << exp->CalcExp();
+        ;
+        cout << " } "<<endl;
     }
     string DumpIR() const override
     {
@@ -775,9 +781,9 @@ public:
     unique_ptr<BaseAST> exp;
     void Dump() const override
     {
-        cout << "ConstExpAST { ";
+        cout << "ConstExpAST { "<<endl;
         exp->Dump();
-        cout << " } ";
+        cout << " } "<<endl;
     }
     string DumpIR() const override
     {
@@ -796,9 +802,9 @@ public:
     unique_ptr<BaseAST> item;
     void Dump() const override
     {
-        cout << "BlockItemAST { ";
+        cout << "BlockItemAST { "<<endl;
         item->Dump();
-        cout << " } ";
+        cout << " } "<<endl;
     }
     string DumpIR() const override
     {
@@ -813,13 +819,13 @@ public:
     unique_ptr<vector<unique_ptr<BaseAST>>> defs;
     void Dump() const override
     {
-        cout << "VarDeclAST { ";
+        cout << "VarDeclAST { "<<endl;
         for (const auto &def : *defs)
         {
             def->Dump();
-            cout << ",";
+            cout << endl;
         }
-        cout << " } ";
+        cout << " } "<<endl;
     }
     string DumpIR() const override
     {
@@ -837,11 +843,8 @@ public:
     unique_ptr<BaseAST> initVal;
     void Dump() const override
     {
-        cout << "VarDefAST { ident: " << ident << ", initVal: ";
-        if (initVal)
-            cout << initVal->CalcExp();
-        else cout<<"0";
-        cout << " } ";
+        cout << "VarDefAST { ident: " << ident;
+        cout << " } "<<endl;
     }
     string DumpIR() const override
     {
@@ -849,7 +852,7 @@ public:
         string value = "0";
         if (initVal)
             value = initVal->DumpIR();
-        auto data = DeclData{EDecl::Variable, ident, 0,value};
+        auto data = DeclData{EDecl::Variable, ident, 0, value};
         LVals[ident] = data;
         cout << "\t@" << ident << " = alloc i32" << endl;
         cout << "\tstore " << value << ", @" << ident << endl;

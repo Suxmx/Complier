@@ -4,9 +4,10 @@
 #include <cassert>
 #include <vector>
 #include <map>
+#include <cmath>
 using namespace std;
 
-vector<string> regNames = {"t0", "t1", "t2", "t3", "t4", "t5", "t6", "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"};
+vector<string> regNames = {"t1", "t2", "t3", "t4", "t5", "t6", "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"};
 struct Reg
 {
 private:
@@ -14,16 +15,21 @@ private:
     string regName;
 
 public:
+    ERISVSave type;
     int stats;
+    int offset;
     Reg()
     {
+        offset = -1;
         SetReg(0);
     }
     Reg(int reg)
     {
+        offset = -1;
         this->regNum = reg;
         if (reg >= 0 && reg < regNames.size())
             regName = regNames[reg];
+        else regName="Stack";
     }
     string GetRegName()
     {
@@ -41,19 +47,22 @@ public:
     }
 };
 bool init = false;
+int stackTop = 0;
+int stackSize = 0;
 vector<Reg> regs;
-map<const koopa_raw_value_t, Reg*> valueMap;
+map<const koopa_raw_value_t, Reg *> valueMap;
 
 void Visit(const koopa_raw_program_t &program);
 void Visit(const koopa_raw_slice_t &slice);
 void Visit(const koopa_raw_function_t &func);
 void Visit(const koopa_raw_basic_block_t &block);
-Reg* Visit(const koopa_raw_value_t &value);
+Reg *Visit(const koopa_raw_value_t &value);
 void Visit(const koopa_raw_return_t &ret);
 Reg *Visit(const koopa_raw_integer_t &integer, const koopa_raw_value_t &value);
 Reg *Visit(const koopa_raw_binary_t &binary, const koopa_raw_value_t &value);
 
 Reg *FindReg(const koopa_raw_value_t &value);
+Reg *SaveToStack(const koopa_raw_value_t &value);
 void InitRegs();
 void ReleaseRegs(Reg *reg);
 
@@ -91,13 +100,37 @@ void Visit(const koopa_raw_function_t &function)
     cout << "\t.text" << endl;
     cout << "\t.global " << (function->name + 1) << endl;
     cout << (function->name + 1) << ":" << endl;
+    for (int i = 0; i < function->bbs.len; i++)
+    {
+        auto ptr = function->bbs.buffer[i];
+        auto block = reinterpret_cast<koopa_raw_basic_block_t>(ptr);
+        for (int j = 0; j < block->insts.len; j++)
+        {
+            ptr = block->insts.buffer[j];
+            auto inst = reinterpret_cast<koopa_raw_value_t>(ptr);
+            if (inst->ty->tag != KOOPA_RTT_UNIT)
+            {
+                stackSize += 4;
+            }
+        }
+    }
+    stackSize = ceil(stackSize / 16.0) * 16;
+    if (stackSize <= 2047)
+    {
+        cout << "\taddi sp, sp, -" << stackSize << endl;
+    }
+    else
+    {
+        cout << "\tli t0, " << -1 * stackSize;
+        cout << "\tadd sp, sp, t0" << endl;
+    }
     Visit(function->bbs);
 }
 void Visit(const koopa_raw_basic_block_t &block)
 {
     Visit(block->insts);
 }
-Reg* Visit(const koopa_raw_value_t &value)
+Reg *Visit(const koopa_raw_value_t &value)
 {
     if (valueMap.count(value))
         return valueMap[value];
@@ -113,29 +146,40 @@ Reg* Visit(const koopa_raw_value_t &value)
     case KOOPA_RVT_BINARY:
         return Visit(value->kind.data.binary, value);
         break;
+    case KOOPA_RVT_ALLOC:
+        
+        break;
+    case KOOPA_RVT_STORE:
+        
+        return nullptr;
+        break;
+    case KOOPA_RVT_LOAD:
+        
+        return nullptr;
+        break;
     default:
         cout << value->kind.tag;
         return nullptr;
-        break;
+        break; 
     }
 }
 void Visit(const koopa_raw_return_t &ret)
 {
-    Reg* res = Visit(ret.value);
+    Reg *res = Visit(ret.value);
     cout << "\tmv a0," << res->GetRegName() << endl;
     cout << "\tret" << endl;
 }
 Reg *Visit(const koopa_raw_integer_t &integer, const koopa_raw_value_t &value)
 {
-    Reg* res = FindReg(value);
+    Reg *res = FindReg(value);
     cout << "\tli " << res->GetRegName() << ", " << integer.value << endl;
     return res;
 }
-Reg* Visit(const koopa_raw_binary_t &binary, const koopa_raw_value_t &value)
+Reg *Visit(const koopa_raw_binary_t &binary, const koopa_raw_value_t &value)
 {
-    Reg* lhs = Visit(binary.lhs);
-    Reg* rhs = Visit(binary.rhs);
-    Reg* res = FindReg(value);
+    Reg *lhs = Visit(binary.lhs);
+    Reg *rhs = Visit(binary.rhs);
+    Reg *res = FindReg(value);
     switch (binary.op)
     {
     case KOOPA_RBO_ADD:
@@ -181,7 +225,7 @@ Reg* Visit(const koopa_raw_binary_t &binary, const koopa_raw_value_t &value)
     case KOOPA_RBO_OR:
         cout << "\tor " << res->GetRegName() << ", " << lhs->GetRegName() << ", " << rhs->GetRegName() << endl;
         break;
-    
+
     default:
         cout << "Unknown op:" << binary.op << endl;
         assert(false);
@@ -192,7 +236,7 @@ Reg* Visit(const koopa_raw_binary_t &binary, const koopa_raw_value_t &value)
 }
 Reg *FindReg(const koopa_raw_value_t &value)
 {
-    for (int i = 0; i < regs.size(); i++)
+    for (int i = 0; i < regNames.size(); i++)
     {
         if (regs[i].stats == 0)
         {
@@ -203,6 +247,17 @@ Reg *FindReg(const koopa_raw_value_t &value)
     }
     assert(false);
 }
+Reg *SaveToStack(const koopa_raw_value_t &value)
+{
+    Reg stack(regs.size());
+    stack.offset=stackTop;
+    stackTop+=4;
+    assert(!valueMap.count(value));
+    valueMap[value]=&stack;
+    regs.push_back(stack);
+    return &stack;
+    
+}
 void InitRegs()
 {
     init = true;
@@ -210,9 +265,11 @@ void InitRegs()
     {
         Reg reg(i);
         reg.stats = 0;
+        reg.type = ERISVSave::Reg;
         regs.push_back(reg);
     }
 }
+
 void ReleaseRegs(Reg *reg)
 {
     regs[reg->GetReg()].stats = 0;

@@ -68,27 +68,37 @@ enum class EBlockType
     Stmt,
     Decl
 };
-enum class EDecl{
+enum class EDecl
+{
     ConstDecl,
     Variable
 };
-enum class EBType{
-    Int=1
+enum class EBType
+{
+    Int = 1
 };
-enum class EBlockItem{
+enum class EBlockItem
+{
     Decl,
     Stmt
 };
-enum class EStmt{
+enum class EStmt
+{
     Return,
     Var
+};
+enum class ERISVSave
+{
+    Reg,
+    Stack
 };
 inline string PrintOp(EOp op)
 {
     vector<string> opes = {"+", "-", "*", "/", "%", "<", ">", "<=", ">=", "==", "!=", "&&", "||"};
     return opes[(int)op - 1];
 }
-struct DeclData{
+struct DeclData
+{
     EDecl type;
     string ident;
     int constValue;
