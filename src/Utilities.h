@@ -85,7 +85,9 @@ enum class EBlockItem
 enum class EStmt
 {
     Return,
-    Var
+    Var,
+    Exp,
+    Block
 };
 enum class ERISVSave
 {

@@ -5,11 +5,14 @@
 #include <map>
 #include <cassert>
 #include "Utilities.h"
+#include "SymbolManager.h"
+#include "Error.h"
 
 using namespace std;
-
+typedef map<string, DeclData> symbol_table;
 static int expNum = 0;
-static map<string, DeclData> LVals;
+static SymbolTableManager symbolManager;
+
 class BaseAST
 {
 public:
@@ -117,6 +120,7 @@ public:
     EStmt type;
     int num;
     unique_ptr<BaseAST> exp;
+    unique_ptr<BaseAST> block;
     string lval;
     void Dump() const override
     {
@@ -133,11 +137,9 @@ public:
         }
         else if (type == EStmt::Var)
         {
-            // cout<<"debug "<<lval<<"   "<<endl;
-            assert(LVals.count(lval));
-            auto data = &LVals[lval];
+            auto data = symbolManager.FindSymbol(lval);
             string res = exp->DumpIR();
-            cout << "\tstore " << res << ", @" << data->ident << endl;
+            cout << "\tstore " << res << ", @" << data.ident << endl;
         }
         return "";
     }
@@ -204,16 +206,15 @@ public:
         }
         else if (type == EPrimaryExp::LVal)
         {
-            assert(LVals.count(lval));
-            DeclData *data = &LVals[lval];
-            if (data->type == EDecl::ConstDecl)
+            auto data=symbolManager.FindSymbol(lval);
+            if (data.type == EDecl::ConstDecl)
             {
-                return to_string(data->constValue);
+                return to_string(data.constValue);
             }
-            else if (data->type == EDecl::Variable)
+            else if (data.type == EDecl::Variable)
             {
                 string res = "%" + to_string(expNum++);
-                cout << "\t" << res << " = load @" << data->ident << endl;
+                cout << "\t" << res << " = load @" << data.ident << endl;
                 return res;
             }
         }
@@ -227,10 +228,10 @@ public:
             return num;
         else if (type == EPrimaryExp::LVal)
         {
-            assert(LVals.count(lval));
-            DeclData *data = &LVals[lval];
-            if (data->type == EDecl::ConstDecl)
-                return data->constValue;
+            auto data=symbolManager.FindSymbol(lval);
+            if (data.type == EDecl::ConstDecl)
+                return data.constValue;
+            throw SymbolError("Symbol:"+lval+" is not a const value");
         }
         return 0;
     }
@@ -741,7 +742,7 @@ public:
     void Dump() const override
     {
         DeclData data{EDecl::ConstDecl, ident, (initVal->CalcExp())};
-        LVals[ident] = data;
+        symbolManager.AddSymbol(ident,data);
         cout << "ConstDefAST { "<<endl;
         cout << "Ident: " << ident << " Initval: ";
         initVal->Dump();
@@ -749,9 +750,8 @@ public:
     }
     string DumpIR() const override
     {
-        assert(!LVals.count(ident));
         DeclData data{EDecl::ConstDecl, ident, (initVal->CalcExp())};
-        LVals[ident] = data;
+        symbolManager.AddSymbol(ident,data);
         return "";
     }
 };
@@ -848,12 +848,11 @@ public:
     }
     string DumpIR() const override
     {
-        assert(!LVals.count(ident));
         string value = "0";
         if (initVal)
             value = initVal->DumpIR();
         auto data = DeclData{EDecl::Variable, ident, 0, value};
-        LVals[ident] = data;
+        symbolManager.AddSymbol(ident,data);
         cout << "\t@" << ident << " = alloc i32" << endl;
         cout << "\tstore " << value << ", @" << ident << endl;
         return "";

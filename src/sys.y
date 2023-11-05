@@ -235,7 +235,28 @@ Stmt
     stmt->lval = (*unique_ptr<string>($1));
     $$ = stmt;
   }
-  | RETURN Exp ';' {
+  /* | Exp ';'
+  {
+    auto stmt=new StmtAST();
+    stmt->type = EStmt::Exp;
+    stmt->exp = unique_ptr<BaseAST>($1);
+    $$ = stmt;
+  }
+  | ';'
+  {
+    auto stmt=new StmtAST();
+    stmt->type = EStmt::Exp;
+    $$ = stmt;
+  }
+  | Block 
+  {
+    auto stmt=new StmtAST();
+    stmt->type = EStmt::Block;
+    stmt->block = unique_ptr<BaseAST>($1);
+    $$ = stmt;
+  } */
+  | RETURN Exp ';' 
+  {
     auto stmt=new StmtAST();
     stmt->type = EStmt::Return;
     stmt->exp = unique_ptr<BaseAST>($2);
