@@ -28,7 +28,7 @@ public:
     unique_ptr<BaseAST> funcDef;
     void Dump() const override
     {
-        cout << "CompUnit { "<<endl;
+        cout << "CompUnit { " << endl;
         funcDef->Dump();
         cout << " }";
     }
@@ -50,17 +50,18 @@ public:
     unique_ptr<BaseAST> block;
     void Dump() const override
     {
-        cout << "FuncDefAST { "<<endl;
+        cout << "FuncDefAST { " << endl;
         funcType->Dump();
         cout << ", " << ident << ", ";
         block->Dump();
-        cout << " }"<<endl;
+        cout << " }" << endl;
     }
     string DumpIR() const override
     {
         cout << "fun @" << ident << "(): ";
         funcType->DumpIR();
         cout << " {" << endl;
+        cout << "\%entry:" << endl;
         block->DumpIR();
         cout << endl
              << "}";
@@ -77,7 +78,7 @@ public:
     string type;
     void Dump() const override
     {
-        cout << "FuncType{ " << type << " }"<<endl;
+        cout << "FuncType{ " << type << " }" << endl;
     }
     string DumpIR() const override
     {
@@ -93,20 +94,23 @@ public:
     unique_ptr<vector<unique_ptr<BaseAST>>> itemList;
     void Dump() const override
     {
+        symbolManager.EnterBlock();
         cout << "BlockAST { ";
         for (const auto &item : *itemList)
         {
             item->Dump();
         }
-        cout << " }"<<endl;
+        cout << " }" << endl;
+        symbolManager.ExitBlock();
     }
     string DumpIR() const override
     {
-        cout << "\%entry:" << endl;
+        symbolManager.EnterBlock();
         for (const auto &item : *itemList)
         {
             item->DumpIR();
         }
+        symbolManager.ExitBlock();
         return "";
     }
     int CalcExp() override
@@ -124,9 +128,9 @@ public:
     string lval;
     void Dump() const override
     {
-        cout << "StmtAST { "<<endl;
+        cout << "StmtAST { " << endl;
         exp->Dump();
-        cout << " }"<<endl;
+        cout << " }" << endl;
     }
     string DumpIR() const override
     {
@@ -139,7 +143,15 @@ public:
         {
             auto data = symbolManager.FindSymbol(lval);
             string res = exp->DumpIR();
-            cout << "\tstore " << res << ", @" << data.ident << endl;
+            cout << "\tstore " << res << ", @" << data.globalIdent << endl;
+        }
+        else if (type == EStmt::Block)
+        {
+            block->DumpIR();
+        }
+        else if (type == EStmt::Exp)
+        {
+
         }
         return "";
     }
@@ -155,9 +167,9 @@ public:
     unique_ptr<BaseAST> unaryExp;
     void Dump() const override
     {
-        cout << "ExpAST { "<<endl;
+        cout << "ExpAST { " << endl;
         unaryExp->Dump();
-        cout << " } "<<endl;
+        cout << " } " << endl;
     }
     string DumpIR() const override
     {
@@ -188,11 +200,11 @@ public:
             exp->Dump();
             cout << ")";
         }
-        else if(type == EPrimaryExp::LVal)
+        else if (type == EPrimaryExp::LVal)
         {
-            cout<<lval;
+            cout << lval;
         }
-        cout << " }"<<endl;
+        cout << " }" << endl;
     }
     string DumpIR() const override
     {
@@ -206,7 +218,7 @@ public:
         }
         else if (type == EPrimaryExp::LVal)
         {
-            auto data=symbolManager.FindSymbol(lval);
+            auto data = symbolManager.FindSymbol(lval);
             if (data.type == EDecl::ConstDecl)
             {
                 return to_string(data.constValue);
@@ -214,7 +226,7 @@ public:
             else if (data.type == EDecl::Variable)
             {
                 string res = "%" + to_string(expNum++);
-                cout << "\t" << res << " = load @" << data.ident << endl;
+                cout << "\t" << res << " = load @" << data.globalIdent << endl;
                 return res;
             }
         }
@@ -228,10 +240,10 @@ public:
             return num;
         else if (type == EPrimaryExp::LVal)
         {
-            auto data=symbolManager.FindSymbol(lval);
+            auto data = symbolManager.FindSymbol(lval);
             if (data.type == EDecl::ConstDecl)
                 return data.constValue;
-            throw SymbolError("Symbol:"+lval+" is not a const value");
+            throw SymbolError("Symbol:" + lval + " is not a const value");
         }
         return 0;
     }
@@ -245,7 +257,7 @@ public:
     char op;
     void Dump() const override
     {
-        cout << "UnaryExpAST { "<<endl;
+        cout << "UnaryExpAST { " << endl;
         if (type == EUnaryExp::PrimaryExp)
         {
             primaryExp->Dump();
@@ -255,7 +267,7 @@ public:
             cout << op << " ";
             unaryExp->Dump();
         }
-        cout << " } "<<endl;
+        cout << " } " << endl;
     }
     string DumpIR() const override
     {
@@ -313,7 +325,7 @@ public:
     EOp op;
     void Dump() const override
     {
-        cout << "MulExpAST { "<<endl;
+        cout << "MulExpAST { " << endl;
         if (type == EMulExp::Single)
         {
             unaryExp->Dump();
@@ -324,7 +336,7 @@ public:
             cout << PrintOp(op) << " ";
             rhs->Dump();
         }
-        cout << " } "<<endl;
+        cout << " } " << endl;
     }
     string DumpIR() const override
     {
@@ -384,7 +396,7 @@ public:
     EOp op;
     void Dump() const override
     {
-        cout << "AddExpAST { "<<endl;
+        cout << "AddExpAST { " << endl;
         if (type == EAddExp::Single)
         {
             mulExp->Dump();
@@ -395,7 +407,7 @@ public:
             cout << PrintOp(op) << " ";
             rhs->Dump();
         }
-        cout << " } "<<endl;
+        cout << " } " << endl;
     }
     string DumpIR() const override
     {
@@ -446,18 +458,18 @@ public:
     unique_ptr<BaseAST> rhs;
     void Dump() const override
     {
-        cout << "RelExpAST { "<<endl;
+        cout << "RelExpAST { " << endl;
         if (type == ERelExp::Single)
         {
             single->Dump();
-            cout << " } "<<endl;
+            cout << " } " << endl;
         }
         else if (type == ERelExp::Double)
         {
             lhs->Dump();
             cout << " " << PrintOp(op);
             rhs->Dump();
-            cout << " }"<<endl;
+            cout << " }" << endl;
         }
     }
     string DumpIR() const override
@@ -523,18 +535,18 @@ public:
     unique_ptr<BaseAST> rhs;
     void Dump() const override
     {
-        cout << "EqExpAST { "<<endl;
+        cout << "EqExpAST { " << endl;
         if (type == EEqExp::Single)
         {
             single->Dump();
-            cout << " } "<<endl;
+            cout << " } " << endl;
         }
         else if (type == EEqExp::Double)
         {
             lhs->Dump();
             cout << " " << PrintOp(op);
             rhs->Dump();
-            cout << " }"<<endl;
+            cout << " }" << endl;
         }
     }
     string DumpIR() const override
@@ -586,18 +598,18 @@ public:
     unique_ptr<BaseAST> rhs;
     void Dump() const override
     {
-        cout << "LAndExpAST { "<<endl;
+        cout << "LAndExpAST { " << endl;
         if (type == ELAndExp::Single)
         {
             single->Dump();
-            cout << " } "<<endl;
+            cout << " } " << endl;
         }
         else if (type == ELAndExp::Double)
         {
             lhs->Dump();
             cout << " " << PrintOp(op);
             rhs->Dump();
-            cout << " }"<<endl;
+            cout << " }" << endl;
         }
     }
     string DumpIR() const override
@@ -646,18 +658,18 @@ public:
     unique_ptr<BaseAST> rhs;
     void Dump() const override
     {
-        cout << "LOrExpAST { "<<endl;
+        cout << "LOrExpAST { " << endl;
         if (type == ELOrExp::Single)
         {
             single->Dump();
-            cout << " } "<<endl;
+            cout << " } " << endl;
         }
         else if (type == ELOrExp::Double)
         {
             lhs->Dump();
             cout << " " << PrintOp(op);
             rhs->Dump();
-            cout << " }"<<endl;
+            cout << " }" << endl;
         }
     }
     string DumpIR() const override
@@ -700,9 +712,9 @@ public:
     unique_ptr<BaseAST> decl;
     void Dump() const override
     {
-        cout << "DeclAST { "<<endl;
+        cout << "DeclAST { " << endl;
         decl->Dump();
-        cout << " } "<<endl;
+        cout << " } " << endl;
     }
     string DumpIR() const override
     {
@@ -717,13 +729,13 @@ public:
     unique_ptr<vector<unique_ptr<BaseAST>>> defs;
     void Dump() const override
     {
-        cout << "ConstDeclAST { "<<endl;
+        cout << "ConstDeclAST { " << endl;
         for (const auto &def : *defs)
         {
             def->Dump();
-            cout<<endl;
+            cout << endl;
         }
-        cout << " } "<<endl;
+        cout << " } " << endl;
     }
     string DumpIR() const override
     {
@@ -742,16 +754,16 @@ public:
     void Dump() const override
     {
         DeclData data{EDecl::ConstDecl, ident, (initVal->CalcExp())};
-        symbolManager.AddSymbol(ident,data);
-        cout << "ConstDefAST { "<<endl;
+        symbolManager.AddSymbol(ident, data);
+        cout << "ConstDefAST { " << endl;
         cout << "Ident: " << ident << " Initval: ";
         initVal->Dump();
-        cout << " } "<<endl;
+        cout << " } " << endl;
     }
     string DumpIR() const override
     {
         DeclData data{EDecl::ConstDecl, ident, (initVal->CalcExp())};
-        symbolManager.AddSymbol(ident,data);
+        symbolManager.AddSymbol(ident, data);
         return "";
     }
 };
@@ -763,7 +775,7 @@ public:
     {
         cout << "InitValAST { " << exp->CalcExp();
         ;
-        cout << " } "<<endl;
+        cout << " } " << endl;
     }
     string DumpIR() const override
     {
@@ -781,9 +793,9 @@ public:
     unique_ptr<BaseAST> exp;
     void Dump() const override
     {
-        cout << "ConstExpAST { "<<endl;
+        cout << "ConstExpAST { " << endl;
         exp->Dump();
-        cout << " } "<<endl;
+        cout << " } " << endl;
     }
     string DumpIR() const override
     {
@@ -802,9 +814,9 @@ public:
     unique_ptr<BaseAST> item;
     void Dump() const override
     {
-        cout << "BlockItemAST { "<<endl;
+        cout << "BlockItemAST { " << endl;
         item->Dump();
-        cout << " } "<<endl;
+        cout << " } " << endl;
     }
     string DumpIR() const override
     {
@@ -819,13 +831,13 @@ public:
     unique_ptr<vector<unique_ptr<BaseAST>>> defs;
     void Dump() const override
     {
-        cout << "VarDeclAST { "<<endl;
+        cout << "VarDeclAST { " << endl;
         for (const auto &def : *defs)
         {
             def->Dump();
             cout << endl;
         }
-        cout << " } "<<endl;
+        cout << " } " << endl;
     }
     string DumpIR() const override
     {
@@ -844,7 +856,7 @@ public:
     void Dump() const override
     {
         cout << "VarDefAST { ident: " << ident;
-        cout << " } "<<endl;
+        cout << " } " << endl;
     }
     string DumpIR() const override
     {
@@ -852,9 +864,9 @@ public:
         if (initVal)
             value = initVal->DumpIR();
         auto data = DeclData{EDecl::Variable, ident, 0, value};
-        symbolManager.AddSymbol(ident,data);
-        cout << "\t@" << ident << " = alloc i32" << endl;
-        cout << "\tstore " << value << ", @" << ident << endl;
+        data=symbolManager.AddSymbol(ident, data);
+        cout << "\t@" << data.globalIdent << " = alloc i32" << endl;
+        cout << "\tstore " << value << ", @" << data.globalIdent << endl;
         return "";
     }
 };

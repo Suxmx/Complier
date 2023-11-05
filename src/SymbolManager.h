@@ -18,7 +18,7 @@ class SymbolTableManager
 {
 private:
     stack<shared_ptr<SymbolTable>> symbolStack;
-
+    map<string,int> symbolUsed;
 public:
     SymbolTableManager()
     {
@@ -35,12 +35,18 @@ public:
     {
         symbolStack.pop();
     }
-    void AddSymbol(string ident, DeclData data)
+    DeclData AddSymbol(string ident, DeclData data)
     {
         auto cur = symbolStack.top();
         if (cur->symbols.count(ident))
             throw SymbolError("Symbol:" + ident + " already exist.");
+        if(!symbolUsed.count(ident))
+            symbolUsed[ident]=1;
+        else symbolUsed[ident]++;
+        string globalIdent=ident+"_"+to_string(symbolUsed[ident]);
+        data.globalIdent=globalIdent;    
         cur->symbols[ident] = data;
+        return data;
     }
     DeclData FindSymbol(const string &ident)
     {

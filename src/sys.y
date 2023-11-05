@@ -207,10 +207,10 @@ BlockItem
     $$ = item;
   };
 BlockItemList
-  :BlockItem
+  :
   {
     auto list = new vector<unique_ptr<BaseAST>>();
-    list->push_back(unique_ptr<BaseAST>($1));
+    // list->push_back(unique_ptr<BaseAST>($1));
     $$ = list;
   }
   |BlockItemList  BlockItem
@@ -235,7 +235,7 @@ Stmt
     stmt->lval = (*unique_ptr<string>($1));
     $$ = stmt;
   }
-  /* | Exp ';'
+  | Exp ';'
   {
     auto stmt=new StmtAST();
     stmt->type = EStmt::Exp;
@@ -254,7 +254,7 @@ Stmt
     stmt->type = EStmt::Block;
     stmt->block = unique_ptr<BaseAST>($1);
     $$ = stmt;
-  } */
+  }
   | RETURN Exp ';' 
   {
     auto stmt=new StmtAST();

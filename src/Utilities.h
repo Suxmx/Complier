@@ -105,5 +105,6 @@ struct DeclData
     string ident;
     int constValue;
     string varReg;
+    string globalIdent;//为了避免IR不能重名的问题
 };
 #endif
