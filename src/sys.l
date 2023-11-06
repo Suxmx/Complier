@@ -37,17 +37,21 @@ Decimal       [1-9][0-9]*
 Octal         0[0-7]*
 Hexadecimal   0[xX][0-9a-fA-F]+
 Const         "const"
+If            "if"
+Else          "else"
 
 %%
 
 {WhiteSpace}    { /* 忽略, 不做任何操作 */ }
 {BlockComment}  {}
 {LineComment}   { /* 忽略, 不做任何操作 */ }
-
+{If}            { return IF; }
+{Else}          { return ELSE; }
 "int"           { return INT; }
 "return"        { return RETURN; }
 {Const}         { return CONST; }
 {Identifier}    { yylval.str_val = new string(yytext); return IDENT; }
+
 
 {LessEq}        { return LESSEQ; }
 {LargerEq}      { return LARGEREQ; }

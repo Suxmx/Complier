@@ -64,6 +64,8 @@ Reg *Visit(const koopa_raw_integer_t &integer, const koopa_raw_value_t &value);
 Reg *Visit(const koopa_raw_binary_t &binary, const koopa_raw_value_t &value);
 Reg *Visit(const koopa_raw_store_t &store, const koopa_raw_value_t &value);
 Reg *Visit(const koopa_raw_load_t &load, const koopa_raw_value_t &value);
+void Visit(const koopa_raw_branch_t &branch, const koopa_raw_value_t &value);
+void Visit(const koopa_raw_jump_t &jump, const koopa_raw_value_t &value);
 
 Reg *FindReg(const koopa_raw_value_t &value);
 Reg *SaveToStack(const koopa_raw_value_t &value);
@@ -168,6 +170,13 @@ Reg *Visit(const koopa_raw_value_t &value)
         break;
     case KOOPA_RVT_LOAD:
         return Visit(value->kind.data.load, value);
+        break;
+    case KOOPA_RVT_JUMP:
+        Visit(value->kind.data.jump, value);
+        return nullptr;
+        break;
+    case KOOPA_RVT_BRANCH:
+        Visit(value->kind.data.branch, value);
         return nullptr;
         break;
     default:
@@ -181,11 +190,11 @@ void Visit(const koopa_raw_return_t &ret)
     Reg *res = Visit(ret.value);
     if (res->offset >= 0)
     {
-        cout << "\tlw a0, "<<res->offset<<"(sp)"<<endl;
+        cout << "\tlw a0, " << res->offset << "(sp)" << endl;
     }
     else
         cout << "\tmv a0," << res->GetRegName() << endl;
-    cout<<"\taddi sp, sp, "<<stackSize<<endl;
+    cout << "\taddi sp, sp, " << stackSize << endl;
     cout << "\tret" << endl;
 }
 Reg *Visit(const koopa_raw_integer_t &integer, const koopa_raw_value_t &value)
@@ -332,6 +341,12 @@ Reg *SaveToStack(const koopa_raw_value_t &value)
     regs.push_back(stack);
     valueMap[value] = &regs[regs.size() - 1];
     return &regs[regs.size() - 1];
+}
+void Visit(const koopa_raw_branch_t &branch, const koopa_raw_value_t &value)
+{
+}
+void Visit(const koopa_raw_jump_t &jump, const koopa_raw_value_t &value)
+{
 }
 void InitRegs()
 {

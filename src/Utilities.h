@@ -87,7 +87,9 @@ enum class EStmt
     Return,
     Var,
     Exp,
-    Block
+    Block,
+    If,
+    IfElse
 };
 enum class ERISVSave
 {

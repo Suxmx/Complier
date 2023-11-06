@@ -11,6 +11,7 @@
 using namespace std;
 typedef map<string, DeclData> symbol_table;
 static int expNum = 0;
+static int ifNum = 0;
 static SymbolTableManager symbolManager;
 
 class BaseAST
@@ -105,13 +106,21 @@ public:
     }
     string DumpIR() const override
     {
+        string result;
         symbolManager.EnterBlock();
         for (const auto &item : *itemList)
         {
-            item->DumpIR();
+            string tmp = item->DumpIR();
+
+            if (tmp == "ret")
+            {
+                result = tmp;
+                // cout<<"DEBUGBLOCK:"<<result<<endl;
+                break;
+            }
         }
         symbolManager.ExitBlock();
-        return "";
+        return result;
     }
     int CalcExp() override
     {
@@ -125,6 +134,8 @@ public:
     int num;
     unique_ptr<BaseAST> exp;
     unique_ptr<BaseAST> block;
+    unique_ptr<BaseAST> ifStmt;
+    unique_ptr<BaseAST> elseStmt;
     string lval;
     void Dump() const override
     {
@@ -138,6 +149,7 @@ public:
         {
             string resultReg = exp->DumpIR();
             cout << "\tret " << resultReg << endl;
+            return "ret";
         }
         else if (type == EStmt::Var)
         {
@@ -147,11 +159,46 @@ public:
         }
         else if (type == EStmt::Block)
         {
-            block->DumpIR();
+            return block->DumpIR();
         }
         else if (type == EStmt::Exp)
         {
-
+        }
+        else if (type == EStmt::If)
+        {
+            ifNum++;
+            int cache = ifNum;
+            string condition = exp->DumpIR();
+            cout << "\tbr " << condition << ", \%ifblock_" << cache << ", \%end_" << ifNum << endl;
+            cout << endl;
+            cout << "\%ifblock_" << cache << ":" << endl;
+            string tmp = ifStmt->DumpIR();
+            // cout<<"DEBUG:"<<tmp<<endl;
+            if (tmp != "ret")
+                cout << "\tjump \%end_" << cache << endl;
+            cout << endl;
+            cout << "\%end_" << cache << ":" << endl;
+        }
+        else if (type == EStmt::IfElse)
+        {
+            ifNum++;
+            int cache = ifNum;
+            string condition = exp->DumpIR();
+            cout << "\tbr " << condition << ", \%ifblock_" << cache << ", \%elseblock_" << ifNum << endl;
+            cout << endl;
+            cout << "\%ifblock_" << cache << ":" << endl;
+            string ifRet = ifStmt->DumpIR();
+            // cout<<"DEBUG:"<<tmp<<endl;
+            if (ifRet != "ret")
+                cout << "\tjump \%end_" << cache << endl;
+            cout << endl;
+            cout << "\%elseblock_" << cache << ":" << endl;
+            string elseRet = elseStmt->DumpIR();
+            if (elseRet != "ret")
+                cout << "\tjump \%end_" << cache << endl;
+            cout << endl;
+            // if (ifRet != "ret" || elseRet != "ret")
+            cout << "\%end_" << cache << ":" << endl;
         }
         return "";
     }
@@ -820,7 +867,7 @@ public:
     }
     string DumpIR() const override
     {
-        item->DumpIR();
+        return item->DumpIR();
         return "";
     }
 };
@@ -864,7 +911,7 @@ public:
         if (initVal)
             value = initVal->DumpIR();
         auto data = DeclData{EDecl::Variable, ident, 0, value};
-        data=symbolManager.AddSymbol(ident, data);
+        data = symbolManager.AddSymbol(ident, data);
         cout << "\t@" << data.globalIdent << " = alloc i32" << endl;
         cout << "\tstore " << value << ", @" << data.globalIdent << endl;
         return "";
