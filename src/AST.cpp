@@ -75,6 +75,16 @@ string BlockAST::DumpIR() const
             // cout<<"DEBUGBLOCK:"<<result<<endl;
             break;
         }
+        if (tmp == "break" && !whileStack.empty())
+        {
+            result = tmp;
+            break;
+        }
+        if (tmp == "continue" && !whileStack.empty())
+        {
+            result = tmp;
+            break;
+        }
     }
     symbolManager.ExitBlock();
     return result;
@@ -121,7 +131,7 @@ string StmtAST::DumpIR() const
         cout << "\%ifblock_" << cache << ":" << endl;
         string tmp = ifStmt->DumpIR();
         // cout<<"DEBUG:"<<tmp<<endl;
-        if (tmp != "ret")
+        if (tmp != "ret" && tmp != "break" && tmp != "continue")
             cout << "\tjump \%go_on_" << cache << endl;
         cout << endl;
         cout << "\%go_on_" << cache << ":" << endl;
@@ -136,12 +146,12 @@ string StmtAST::DumpIR() const
         cout << "\%ifblock_" << cache << ":" << endl;
         string ifRet = ifStmt->DumpIR();
         // cout<<"DEBUG:"<<tmp<<endl;
-        if (ifRet != "ret")
+        if (ifRet != "ret" && ifRet != "break" && ifRet != "continue")
             cout << "\tjump \%go_on_" << cache << endl;
         cout << endl;
         cout << "\%elseblock_" << cache << ":" << endl;
         string elseRet = elseStmt->DumpIR();
-        if (elseRet != "ret")
+        if (elseRet != "ret" && elseRet != "break" && elseRet != "continue")
             cout << "\tjump \%go_on_" << cache << endl;
         cout << endl;
         // if (ifRet != "ret" || elseRet != "ret")
@@ -150,6 +160,7 @@ string StmtAST::DumpIR() const
     else if (type == EStmt::While)
     {
         int cacheNum = whileNum++;
+        whileStack.push(cacheNum);
         cout << "\tjump \%while_entry_" << cacheNum << endl;
         cout << endl;
         cout << "\%while_entry_" << cacheNum << ":" << endl;
@@ -158,10 +169,23 @@ string StmtAST::DumpIR() const
         cout << endl;
         cout << "\%while_body_" << cacheNum << ":" << endl;
         string ret = whileStmt->DumpIR();
-        if (ret != "ret")
+        if (ret != "ret" && ret != "break" && ret != "continue")
             cout << "\tjump \%while_entry_" << cacheNum << endl;
         cout << endl;
         cout << "\%while_go_on_" << cacheNum << ":" << endl;
+        whileStack.pop();
+    }
+    else if (type == EStmt::Break)
+    {
+        int num = whileStack.top();
+        cout << "\tjump \%while_go_on_" << num << endl;
+        return "break";
+    }
+    else if (type == EStmt::Continue)
+    {
+        int num = whileStack.top();
+        cout << "\tjump \%while_entry_" << num << endl;
+        return "continue";
     }
     return "";
 }
@@ -569,20 +593,6 @@ string LAndExpAST::DumpIR() const
     }
     else if (type == ELAndExp::Double)
     {
-        // string lCalcReg = lhs->DumpIR();
-        // string rCalcReg = rhs->DumpIR();
-        // string resultReg = "%" + to_string(expNum);
-        // expNum++;
-        // string tmpLReg = "%" + to_string(expNum);
-        // cout << "\t" << tmpLReg << " = ne " << lCalcReg << ", "
-        //      << "0" << endl;
-        // expNum++;
-        // string tmpRReg = "%" + to_string(expNum);
-        // cout << "\t" << tmpRReg << " = ne " << rCalcReg << ", "
-        //      << "0" << endl;
-        // cout << "\t" << resultReg << " = and" << tmpLReg << ", " << tmpRReg << endl;
-        // expNum++;
-        // return resultReg;
         int cacheCuttingNum = cuttingOut++;
         string lCalcReg = lhs->DumpIR();
         string leftRes = "%" + to_string(expNum++);
@@ -645,20 +655,6 @@ string LOrExpAST::DumpIR() const
     }
     else if (type == ELOrExp::Double)
     {
-        // string lCalcReg = lhs->DumpIR();
-        // string rCalcReg = rhs->DumpIR();
-        // string resultReg = "%" + to_string(expNum);
-        // expNum++;
-        // string tmpLReg = "%" + to_string(expNum);
-        // cout << "\t" << tmpLReg << " = ne " << lCalcReg << ", "
-        //      << "0" << endl;
-        // expNum++;
-        // string tmpRReg = "%" + to_string(expNum);
-        // cout << "\t" << tmpRReg << " = ne " << rCalcReg << ", "
-        //      << "0" << endl;
-        // cout << "\t" << resultReg << " = or" << tmpLReg << ", " << tmpRReg << endl;
-        // expNum++;
-        // return resultReg;
         int cacheCuttingNum = cuttingOut++;
         string lCalcReg = lhs->DumpIR();
         string leftRes = "%" + to_string(expNum++);

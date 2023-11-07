@@ -90,7 +90,9 @@ enum class EStmt
     Block,
     If,
     IfElse,
-    While
+    While,
+    Break,
+    Continue
 };
 enum class ERISVSave
 {

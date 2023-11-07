@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <stack>
 #include <cassert>
 #include "Utilities.h"
 #include "SymbolManager.h"
@@ -15,7 +16,7 @@ static int ifNum = 0;
 static int cuttingOut=0;
 static int whileNum=0;
 static SymbolTableManager symbolManager;
-class StmtAST;
+static stack<int> whileStack;
 class BaseAST
 {
 public:

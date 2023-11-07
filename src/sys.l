@@ -40,6 +40,8 @@ Const         "const"
 If            "if"
 Else          "else"
 While         "while"
+Break         "break"
+Continue      "continue"
 
 %%
 
@@ -52,6 +54,8 @@ While         "while"
 "return"        { return RETURN; }
 {Const}         { return CONST; }
 {While}         { return WHILE; }
+{Break}         { return BREAK; }
+{Continue}      {return CONTINUE; }
 
 
 {Identifier}    { yylval.str_val = new string(yytext); return IDENT; }
