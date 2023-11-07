@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <cmath>
+#include <string>
 using namespace std;
 
 vector<string> regNames = {"t1", "t2", "t3", "t4", "t5", "t6", "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"};
@@ -134,6 +135,9 @@ void Visit(const koopa_raw_function_t &function)
 }
 void Visit(const koopa_raw_basic_block_t &block)
 {
+    string name = (block->name + 1);
+    if (name.compare("entry"))
+        cout << (block->name + 1) << ":" << endl;
     Visit(block->insts);
 }
 Reg *Visit(const koopa_raw_value_t &value)
@@ -344,9 +348,19 @@ Reg *SaveToStack(const koopa_raw_value_t &value)
 }
 void Visit(const koopa_raw_branch_t &branch, const koopa_raw_value_t &value)
 {
+    auto condition = Visit(branch.cond);
+    if (condition->offset >= 0)
+    {
+        auto tmp = FindReg(branch.cond);
+        cout << "\tlw " << tmp->GetRegName() << ", " << condition->offset << "(sp)" << endl;
+        condition = tmp;
+    }
+    cout << "\tbnez " << condition->GetRegName() << ", " << (branch.true_bb->name + 1) << endl;
+    cout << "\tj " << (branch.false_bb->name + 1) << endl;
 }
 void Visit(const koopa_raw_jump_t &jump, const koopa_raw_value_t &value)
 {
+    cout << "\tj " << (jump.target->name + 1) << endl;
 }
 void InitRegs()
 {

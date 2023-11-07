@@ -41,7 +41,7 @@ using namespace std;
 %token INT RETURN LESS LARGER AND OR LESSEQ LARGEREQ EQ NE CONST 
 %token <str_val> IDENT
 %token <int_val> INT_CONST
-%nonassoc LOWER_THAN_ELSE
+/* %nonassoc LOWER_THAN_ELSE */
 %nonassoc IF ELSE
 
 // 非终结符的类型定义
