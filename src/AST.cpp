@@ -654,17 +654,17 @@ string LOrExpAST::DumpIR() const
         cout << endl;
         cout << "\%cutting_" << cacheCuttingNum << ":" << endl;
         cout << "\tstore 1, " << resVar << endl;
-        cout << "\tjump \%atfercutting_" << cacheCuttingNum << endl;
+        cout << "\tjump \%aftercutting_" << cacheCuttingNum << endl;
         cout<<endl;
         cout << "\%uncutting_" << cacheCuttingNum << ":" << endl;
         string rCalcReg = rhs->DumpIR();
         string rightRes = "%" + to_string(expNum++);
         cout << "\t" << rightRes << " = ne " << rCalcReg << ", 0" << endl;
         cout << "\tstore " << rightRes << ", " << resVar << endl;
-        cout << "\tjump \%atfercutting_" << cacheCuttingNum << endl;
+        cout << "\tjump \%aftercutting_" << cacheCuttingNum << endl;
         cout << endl;
         string resultReg = "%" + to_string(expNum++);
-        cout<<"\%atfercutting_"<<cacheCuttingNum<<":"<<endl;
+        cout<<"\%aftercutting_"<<cacheCuttingNum<<":"<<endl;
         cout<<"\t"<<resultReg<<" = load "<<resVar<<endl;
         
         return resultReg;
