@@ -39,6 +39,7 @@ Hexadecimal   0[xX][0-9a-fA-F]+
 Const         "const"
 If            "if"
 Else          "else"
+While         "while"
 
 %%
 
@@ -50,6 +51,9 @@ Else          "else"
 "int"           { return INT; }
 "return"        { return RETURN; }
 {Const}         { return CONST; }
+{While}         { return WHILE; }
+
+
 {Identifier}    { yylval.str_val = new string(yytext); return IDENT; }
 
 

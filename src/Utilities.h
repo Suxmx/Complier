@@ -89,7 +89,8 @@ enum class EStmt
     Exp,
     Block,
     If,
-    IfElse
+    IfElse,
+    While
 };
 enum class ERISVSave
 {

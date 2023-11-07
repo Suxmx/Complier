@@ -38,7 +38,7 @@ using namespace std;
 
 // lexer 返回的所有 token 种类的声明
 // 注意 IDENT 和 INT_CONST 会返回 token 的值, 分别对应 str_val 和 int_val
-%token INT RETURN LESS LARGER AND OR LESSEQ LARGEREQ EQ NE CONST 
+%token INT RETURN LESS LARGER AND OR LESSEQ LARGEREQ EQ NE CONST WHILE
 %token <str_val> IDENT
 %token <int_val> INT_CONST
 /* %nonassoc LOWER_THAN_ELSE */
@@ -279,6 +279,14 @@ Stmt
     stmt->exp = unique_ptr<BaseAST>($3);
     stmt->ifStmt = unique_ptr<BaseAST>($5);
     stmt->elseStmt = unique_ptr<BaseAST>($7);
+    $$ = stmt;
+  }
+  |WHILE '(' Exp ')' Stmt
+  {
+    auto stmt = new StmtAST(); 
+    stmt->type = EStmt::While;
+    stmt->exp = unique_ptr<BaseAST>($3);
+    stmt->whileStmt = unique_ptr<BaseAST>($5);
     $$ = stmt;
   }
   ;

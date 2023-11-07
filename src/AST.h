@@ -13,6 +13,7 @@ typedef map<string, DeclData> symbol_table;
 static int expNum = 0;
 static int ifNum = 0;
 static int cuttingOut=0;
+static int whileNum=0;
 static SymbolTableManager symbolManager;
 class StmtAST;
 class BaseAST
@@ -69,6 +70,7 @@ public:
     unique_ptr<BaseAST> block;
     unique_ptr<BaseAST> ifStmt;
     unique_ptr<BaseAST> elseStmt;
+    unique_ptr<BaseAST> whileStmt;
     string lval;
     void Dump() const override;
     string DumpIR() const override;
