@@ -12,6 +12,7 @@ using namespace std;
 typedef map<string, DeclData> symbol_table;
 static int expNum = 0;
 static int ifNum = 0;
+static int cuttingOut=0;
 static SymbolTableManager symbolManager;
 class StmtAST;
 class BaseAST

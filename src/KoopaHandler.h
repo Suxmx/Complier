@@ -357,6 +357,7 @@ void Visit(const koopa_raw_branch_t &branch, const koopa_raw_value_t &value)
     }
     cout << "\tbnez " << condition->GetRegName() << ", " << (branch.true_bb->name + 1) << endl;
     cout << "\tj " << (branch.false_bb->name + 1) << endl;
+    ReleaseRegs(condition);
 }
 void Visit(const koopa_raw_jump_t &jump, const koopa_raw_value_t &value)
 {

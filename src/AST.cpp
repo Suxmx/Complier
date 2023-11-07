@@ -115,14 +115,6 @@ string StmtAST::DumpIR() const
     {
         ifNum++;
         int cache = ifNum;
-        if (auto lor = dynamic_cast<LOrExpAST *>(exp.get()))
-        {
-            cout << "LOREXP" << endl;
-        }
-        else if (auto land = dynamic_cast<LAndExpAST *>(exp.get()))
-        {
-            cout << "LANDEXP" << endl;
-        }
         string condition = exp->DumpIR();
         cout << "\tbr " << condition << ", \%ifblock_" << cache << ", \%go_on_" << ifNum << endl;
         cout << endl;
@@ -561,19 +553,43 @@ string LAndExpAST::DumpIR() const
     }
     else if (type == ELAndExp::Double)
     {
+        // string lCalcReg = lhs->DumpIR();
+        // string rCalcReg = rhs->DumpIR();
+        // string resultReg = "%" + to_string(expNum);
+        // expNum++;
+        // string tmpLReg = "%" + to_string(expNum);
+        // cout << "\t" << tmpLReg << " = ne " << lCalcReg << ", "
+        //      << "0" << endl;
+        // expNum++;
+        // string tmpRReg = "%" + to_string(expNum);
+        // cout << "\t" << tmpRReg << " = ne " << rCalcReg << ", "
+        //      << "0" << endl;
+        // cout << "\t" << resultReg << " = and" << tmpLReg << ", " << tmpRReg << endl;
+        // expNum++;
+        // return resultReg;
+        int cacheCuttingNum=cuttingOut++;
         string lCalcReg = lhs->DumpIR();
+        string leftRes = "%" + to_string(expNum++);
+        string resVar = "\%cutting_res_" + to_string(cacheCuttingNum);
+        cout << "\t" << resVar << " = alloc i32" << endl;
+        cout << "\t" << leftRes << " = eq " << lCalcReg << ", 0" << endl;
+        cout << "\tbr " << leftRes << ", "
+             << "\%cutting_" << cacheCuttingNum << ", \%uncutting_" << cacheCuttingNum << endl;
+        cout << endl;
+        cout << "\%cutting_" << cacheCuttingNum << ":" << endl;
+        cout << "\tstore 0, " << resVar << endl;
+        cout << "\tjump \%aftercutting_" << cacheCuttingNum << endl;
+        cout<<endl;
+        cout << "\%uncutting_" << cacheCuttingNum << ":" << endl;
         string rCalcReg = rhs->DumpIR();
-        string resultReg = "%" + to_string(expNum);
-        expNum++;
-        string tmpLReg = "%" + to_string(expNum);
-        cout << "\t" << tmpLReg << " = ne " << lCalcReg << ", "
-             << "0" << endl;
-        expNum++;
-        string tmpRReg = "%" + to_string(expNum);
-        cout << "\t" << tmpRReg << " = ne " << rCalcReg << ", "
-             << "0" << endl;
-        cout << "\t" << resultReg << " = and" << tmpLReg << ", " << tmpRReg << endl;
-        expNum++;
+        string rightRes = "%" + to_string(expNum++);
+        cout << "\t" << rightRes << " = ne " << rCalcReg << ", 0" << endl;
+        cout << "\tstore " << rightRes << ", " << resVar << endl;
+        cout << "\tjump \%aftercutting_" << cacheCuttingNum << endl;
+        cout << endl;
+        string resultReg = "%" + to_string(expNum++);
+        cout<<"\%aftercutting_"<<cacheCuttingNum<<":"<<endl;
+        cout<<"\t"<<resultReg<<" = load "<<resVar<<endl;
         return resultReg;
     }
 
@@ -613,19 +629,44 @@ string LOrExpAST::DumpIR() const
     }
     else if (type == ELOrExp::Double)
     {
+        // string lCalcReg = lhs->DumpIR();
+        // string rCalcReg = rhs->DumpIR();
+        // string resultReg = "%" + to_string(expNum);
+        // expNum++;
+        // string tmpLReg = "%" + to_string(expNum);
+        // cout << "\t" << tmpLReg << " = ne " << lCalcReg << ", "
+        //      << "0" << endl;
+        // expNum++;
+        // string tmpRReg = "%" + to_string(expNum);
+        // cout << "\t" << tmpRReg << " = ne " << rCalcReg << ", "
+        //      << "0" << endl;
+        // cout << "\t" << resultReg << " = or" << tmpLReg << ", " << tmpRReg << endl;
+        // expNum++;
+        // return resultReg;
+        int cacheCuttingNum=cuttingOut++;
         string lCalcReg = lhs->DumpIR();
+        string leftRes = "%" + to_string(expNum++);
+        string resVar = "\%cutting_res_" + to_string(cacheCuttingNum);
+        cout << "\t" << resVar << " = alloc i32" << endl;
+        cout << "\t" << leftRes << " = ne " << lCalcReg << ", 0" << endl;
+        cout << "\tbr " << leftRes << ", "
+             << "\%cutting_" << cacheCuttingNum << ", \%uncutting_" << cacheCuttingNum << endl;
+        cout << endl;
+        cout << "\%cutting_" << cacheCuttingNum << ":" << endl;
+        cout << "\tstore 1, " << resVar << endl;
+        cout << "\tjump \%atfercutting_" << cacheCuttingNum << endl;
+        cout<<endl;
+        cout << "\%uncutting_" << cacheCuttingNum << ":" << endl;
         string rCalcReg = rhs->DumpIR();
-        string resultReg = "%" + to_string(expNum);
-        expNum++;
-        string tmpLReg = "%" + to_string(expNum);
-        cout << "\t" << tmpLReg << " = ne " << lCalcReg << ", "
-             << "0" << endl;
-        expNum++;
-        string tmpRReg = "%" + to_string(expNum);
-        cout << "\t" << tmpRReg << " = ne " << rCalcReg << ", "
-             << "0" << endl;
-        cout << "\t" << resultReg << " = or" << tmpLReg << ", " << tmpRReg << endl;
-        expNum++;
+        string rightRes = "%" + to_string(expNum++);
+        cout << "\t" << rightRes << " = ne " << rCalcReg << ", 0" << endl;
+        cout << "\tstore " << rightRes << ", " << resVar << endl;
+        cout << "\tjump \%atfercutting_" << cacheCuttingNum << endl;
+        cout << endl;
+        string resultReg = "%" + to_string(expNum++);
+        cout<<"\%atfercutting_"<<cacheCuttingNum<<":"<<endl;
+        cout<<"\t"<<resultReg<<" = load "<<resVar<<endl;
+        
         return resultReg;
     }
     return "";
