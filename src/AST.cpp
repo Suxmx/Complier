@@ -6,6 +6,7 @@ void CompUnitAST::Dump() const
     cout << "CompUnit { " << endl;
     for (const auto &def : *funcDefs)
     {
+
         def->Dump();
     }
     cout << " }";
@@ -33,36 +34,41 @@ void FuncDefAST::Dump() const
 }
 string FuncDefAST::DumpIR() const
 {
+
     DeclData data;
     data.ident = ident;
     data.type = EDecl::Func;
     data.bType = funcType;
+
     symbolManager.AddSymbol(ident, data);
     symbolManager.EnterBlock();
+
     cout << "fun @" << ident << "(";
-    for (int i = 0; i < fParams->size(); i++)
-    {
-        (*fParams)[i]->DumpIR();
-        if (i != fParams->size() - 1)
-            cout << ",";
-    }
-    cout << "): ";
+    if (fParams)
+        for (int i = 0; i < fParams->size(); i++)
+        {
+            (*fParams)[i]->DumpIR();
+            if (i != fParams->size() - 1)
+                cout << ",";
+        }
+    cout << ") ";
     if (funcType == EBType::Int)
     {
-        cout << "i32";
+        cout << ":i32";
     }
     cout << " {" << endl;
     cout << "\%entry:" << endl;
-    for (const auto &param : *fParams)
-    {
-        DeclData tmp;
-        tmp.bType = (EBType)(param->GetType());
-        tmp.ident = param->GetIdent();
-        cout << tmp.ident << endl;
-        tmp.type = EDecl::Variable;
-        tmp = symbolManager.AddSymbol(tmp.ident, tmp);
-        cout << "\t\%" << tmp.globalIdent << " = alloc i32" << endl;
-    }
+    if (fParams)
+        for (const auto &param : *fParams)
+        {
+            DeclData tmp;
+            tmp.bType = (EBType)(param->GetType());
+            tmp.ident = param->GetIdent();
+            cout << tmp.ident << endl;
+            tmp.type = EDecl::Variable;
+            tmp = symbolManager.AddSymbol(tmp.ident, tmp);
+            cout << "\t\%" << tmp.globalIdent << " = alloc i32" << endl;
+        }
     block->DumpIR();
     if (funcType == EBType::Void)
         cout << "\tret" << endl;

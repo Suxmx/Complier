@@ -59,7 +59,6 @@ using namespace std;
 // $1 指代规则里第一个符号的返回值, 也就是 FuncDef 的返回值
 CompUnit
   : FuncDefList {
-    cout<<"comp";
     auto comp=make_unique<CompUnitAST>();
     // comp->funcDef=unique_ptr<BaseAST>($1);
     comp->funcDefs = unique_ptr<vector<unique_ptr<BaseAST>>>($1);
@@ -69,14 +68,12 @@ CompUnit
 FuncDefList
   :FuncDef
   {
-    cout<<"funcdef"<<endl;
     auto list = new vector<unique_ptr<BaseAST>>();
     list->push_back(unique_ptr<BaseAST>($1));
     $$ = list;
   }
   |FuncDefList FuncDef
   {
-    cout<<"new funcdef"<<endl;
     auto list = $1;
     list->push_back(unique_ptr<BaseAST>($2));
     $$ = list;
@@ -92,7 +89,6 @@ FuncFParam
 FuncFParamList
   :FuncFParam
   {
-    cout<<"param"<<endl;
     auto list = new vector<unique_ptr<BaseAST>>();
     list->push_back(unique_ptr<BaseAST>($1));
     $$ = list;
