@@ -64,10 +64,10 @@ string FuncDefAST::DumpIR() const
             DeclData tmp;
             tmp.bType = (EBType)(param->GetType());
             tmp.ident = param->GetIdent();
-            cout << tmp.ident << endl;
             tmp.type = EDecl::Variable;
             tmp = symbolManager.AddSymbol(tmp.ident, tmp);
-            cout << "\t\%" << tmp.globalIdent << " = alloc i32" << endl;
+            cout << "\t\@" << tmp.globalIdent << " = alloc i32" << endl;
+            cout << "\tstore @" << tmp.ident << ", \@" << tmp.globalIdent << endl;
         }
     block->DumpIR();
     if (funcType == EBType::Void)
@@ -104,9 +104,11 @@ string FuncFParamAST::GetIdent() const
 }
 void FuncRParamAST::Dump() const
 {
+
 }
 string FuncRParamAST::DumpIR() const
 {
+    return exp->DumpIR();
 }
 
 void BlockAST::Dump() const
@@ -179,6 +181,7 @@ string StmtAST::DumpIR() const
     }
     else if (type == EStmt::Exp)
     {
+        return exp->DumpIR();
     }
     else if (type == EStmt::If)
     {
@@ -370,13 +373,49 @@ string UnaryExpAST::DumpIR() const
             return resultReg;
         }
     }
+    else if (type == EUnaryExp::FuncCall)
+    {
+        vector<string> params;
+        for (const auto &param : *rParams)
+        {
+            params.push_back(param->DumpIR());
+        }
+        auto data = symbolManager.FindSymbol(funcIdent);
+
+        if (data.bType == EBType::Int)
+        {
+            
+            string res = "%" + to_string(expNum++);
+            cout << "\t" << res << " = call @" << data.ident << "(";
+            for (int i = 0; i < params.size(); i++)
+            {
+                cout << params[i];
+                if (i != params.size() - 1)
+                    cout << ",";
+            }
+            cout << ")" << endl;
+            return res;
+        }
+        else if (data.bType == EBType::Void)
+        {
+            cout << "\tcall @" << data.ident << "(";
+            // cout<<params.size();
+            for (int i = 0; !params.empty()&&i < params.size(); i++)
+            {
+                cout << params[i];
+                if (i != params.size() - 1)
+                    cout << ",";
+            }
+            cout << ")" << endl;
+        }
+    }
     return "";
 }
 int UnaryExpAST::CalcExp()
 {
     if (type == EUnaryExp::PrimaryExp)
         return primaryExp->CalcExp();
-    else
+    else if (type == EUnaryExp::PrimaryExp)
     {
         if (op == '+')
             return unaryExp->CalcExp();
@@ -385,6 +424,7 @@ int UnaryExpAST::CalcExp()
         else if (op == '!')
             return !unaryExp->CalcExp();
     }
+    
     return 0;
 }
 

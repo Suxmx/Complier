@@ -109,7 +109,6 @@ FuncRParam
 FuncRParamList
   :FuncRParam
   {
-    
     auto list = new vector<unique_ptr<BaseAST>>();
     list->push_back(unique_ptr<BaseAST>($1));
     $$ = list;
@@ -390,13 +389,21 @@ UnaryExp
     unaryExp->type = EUnaryExp::PrimaryExp;
     unaryExp->primaryExp = unique_ptr<BaseAST>($1);
     $$ = unaryExp;
-  } 
+  }  
   | UnaryOp UnaryExp
   {
     auto unaryExp = new UnaryExpAST();
     unaryExp->type = EUnaryExp::UnaryExp;
     unaryExp->unaryExp = unique_ptr<BaseAST>($2);
     unaryExp->op = (*unique_ptr<string>($1))[0];
+    $$ = unaryExp;
+  }
+  |IDENT '(' ')'
+  {
+    auto unaryExp = new UnaryExpAST();
+    unaryExp->type = EUnaryExp::FuncCall;
+    unaryExp->funcIdent = *unique_ptr<string>($1);
+    unaryExp->rParams = unique_ptr<vector<unique_ptr<BaseAST>>>(new vector<unique_ptr<BaseAST>>());
     $$ = unaryExp;
   }
   |IDENT '('FuncRParamList ')'
