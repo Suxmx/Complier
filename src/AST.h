@@ -13,8 +13,8 @@ using namespace std;
 typedef map<string, DeclData> symbol_table;
 static int expNum = 0;
 static int ifNum = 0;
-static int cuttingOut=0;
-static int whileNum=0;
+static int cuttingOut = 0;
+static int whileNum = 0;
 static SymbolTableManager symbolManager;
 static stack<int> whileStack;
 class BaseAST
@@ -24,33 +24,28 @@ public:
     virtual void Dump() const = 0;
     virtual string DumpIR() const = 0;
     virtual int CalcExp() { return 0; }
+    virtual int GetType() const { return 0; }
+    virtual string GetIdent() const { return ""; }
 };
 
 class CompUnitAST : public BaseAST
 {
 public:
-    unique_ptr<BaseAST> funcDef;
+    unique_ptr<vector<unique_ptr<BaseAST>>> funcDefs;
     void Dump() const override;
     string DumpIR() const override;
-    int CalcExp() override;
 };
 
 class FuncDefAST : public BaseAST
 {
 public:
-    unique_ptr<BaseAST> funcType;
+    EBType funcType;
     string ident;
     unique_ptr<BaseAST> block;
+    unique_ptr<vector<unique_ptr<BaseAST>>> fParams;
     void Dump() const override;
     string DumpIR() const override;
     int CalcExp() override;
-};
-class FuncTypeAST : public BaseAST
-{
-public:
-    EBType type;
-    void Dump() const override;
-    string DumpIR() const override;
 };
 class BlockAST : public BaseAST
 {
@@ -104,6 +99,9 @@ public:
     unique_ptr<BaseAST> primaryExp;
     unique_ptr<BaseAST> unaryExp;
     char op;
+    string funcIdent;
+    unique_ptr<vector<unique_ptr<BaseAST>>> rParams;
+
     void Dump() const override;
     string DumpIR() const override;
     int CalcExp() override;
@@ -245,4 +243,23 @@ public:
     unique_ptr<BaseAST> initVal;
     void Dump() const override;
     string DumpIR() const override;
+};
+class FuncFParamAST : public BaseAST
+{
+public:
+    string ident;
+    EBType type;
+    void Dump() const override;
+    string DumpIR() const override;
+    int GetType() const override;
+    string GetIdent()const override;
+};
+class FuncRParamAST : public BaseAST
+{
+public:
+    unique_ptr<BaseAST> exp;
+    void Dump() const override;
+    string DumpIR() const override;
+    // int GetType() const override;
+    // string GetIdent()const override;
 };

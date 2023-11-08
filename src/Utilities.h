@@ -8,7 +8,8 @@ using namespace std;
 enum class EUnaryExp
 {
     PrimaryExp,
-    UnaryExp
+    UnaryExp,
+    FuncCall
 };
 enum class EPrimaryExp
 {
@@ -71,7 +72,8 @@ enum class EBlockType
 enum class EDecl
 {
     ConstDecl,
-    Variable
+    Variable,
+    Func
 };
 enum class EBType
 {
@@ -112,5 +114,6 @@ struct DeclData
     int constValue;
     string varReg;
     string globalIdent;//为了避免IR不能重名的问题
+    EBType bType;
 };
 #endif

@@ -45,9 +45,9 @@ using namespace std;
 %nonassoc IF ELSE
 
 // 非终结符的类型定义
-%type <ast_val> FuncDef FuncType Block Stmt PrimaryExp UnaryExp Exp AddExp MulExp RelExp EqExp LAndExp LOrExp
+%type <ast_val> FuncDef Block Stmt PrimaryExp UnaryExp Exp AddExp MulExp RelExp EqExp LAndExp LOrExp
 %type <ast_val> Decl ConstDecl ConstDef InitVal BlockItem  VarDecl VarDef FuncFParam FuncRParam
-%type <int_val> Number AddOp MulOp RelOp EqOp LAndOp LOrOp BType
+%type <int_val> Number AddOp MulOp RelOp EqOp LAndOp LOrOp BType FuncType
 %type <str_val> UnaryOp LVal
 %type <vec_val> BlockItemList ConstDefList VarDefList FuncDefList FuncFParamList FuncRParamList
 %%
@@ -59,20 +59,24 @@ using namespace std;
 // $1 指代规则里第一个符号的返回值, 也就是 FuncDef 的返回值
 CompUnit
   : FuncDefList {
+    cout<<"comp";
     auto comp=make_unique<CompUnitAST>();
-    comp->funcDef=unique_ptr<BaseAST>($1);
+    // comp->funcDef=unique_ptr<BaseAST>($1);
+    comp->funcDefs = unique_ptr<vector<unique_ptr<BaseAST>>>($1);
     ast = move(comp);
   }
   ;
 FuncDefList
   :FuncDef
   {
+    cout<<"funcdef"<<endl;
     auto list = new vector<unique_ptr<BaseAST>>();
     list->push_back(unique_ptr<BaseAST>($1));
     $$ = list;
   }
   |FuncDefList FuncDef
   {
+    cout<<"new funcdef"<<endl;
     auto list = $1;
     list->push_back(unique_ptr<BaseAST>($2));
     $$ = list;
@@ -80,11 +84,15 @@ FuncDefList
 FuncFParam
   :BType IDENT
   {
-
+    auto param = new FuncFParamAST();
+    param->type = (EBType)($1); 
+    param->ident = *(unique_ptr<string>($2));
+    $$ = param;
   }
 FuncFParamList
   :FuncFParam
   {
+    cout<<"param"<<endl;
     auto list = new vector<unique_ptr<BaseAST>>();
     list->push_back(unique_ptr<BaseAST>($1));
     $$ = list;
@@ -98,11 +106,14 @@ FuncFParamList
 FuncRParam
   :Exp
   {
-    
+    auto param = new FuncRParamAST();
+    param->exp = unique_ptr<BaseAST>($1);
+    $$ = param;
   }
 FuncRParamList
   :FuncRParam
   {
+    
     auto list = new vector<unique_ptr<BaseAST>>();
     list->push_back(unique_ptr<BaseAST>($1));
     $$ = list;
@@ -126,12 +137,21 @@ FuncRParamList
 // 虽然此处你看不出用 unique_ptr 和手动 delete 的区别, 但当我们定义了 AST 之后
 // 这种写法会省下很多内存管理的负担
 FuncDef
-  : FuncType IDENT '(' ')' Block {
+  : FuncType IDENT '(' FuncFParamList ')' Block 
+  {
     auto funcdef=new FuncDefAST();
-    funcdef->funcType = unique_ptr<BaseAST>($1);
+    funcdef->funcType = (EBType)($1);
+    funcdef->ident = *unique_ptr<string>($2);
+    funcdef->fParams = unique_ptr<vector<unique_ptr<BaseAST>>>($4);
+    funcdef->block = unique_ptr<BaseAST>($6);
+    $$ = funcdef;
+  }
+  |FuncType IDENT '(' ')' Block
+  {
+    auto funcdef=new FuncDefAST();
+    funcdef->funcType = (EBType)($1);
     funcdef->ident = *unique_ptr<string>($2);
     funcdef->block = unique_ptr<BaseAST>($5);
-    
     $$ = funcdef;
   }
   ;
@@ -139,13 +159,11 @@ FuncDef
 // 同上, 不再解释 
 FuncType
   :INT {
-    auto funcType=new FuncTypeAST();
-    funcType->type="int";
-    $$ = funcType;
+    $$ = (int)(EBType::Int);
   }
   |VOID
   {
-
+    $$ = (int)(EBType::Void);
   }
   ;
 Decl
@@ -387,7 +405,11 @@ UnaryExp
   }
   |IDENT '('FuncRParamList ')'
   {
-
+    auto unaryExp = new UnaryExpAST();
+    unaryExp->type = EUnaryExp::FuncCall;
+    unaryExp->funcIdent = *unique_ptr<string>($1);
+    unaryExp->rParams = unique_ptr<vector<unique_ptr<BaseAST>>>($3);
+    $$ = unaryExp;
   }
   ;
 UnaryOp

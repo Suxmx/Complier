@@ -4,50 +4,103 @@ using namespace std;
 void CompUnitAST::Dump() const
 {
     cout << "CompUnit { " << endl;
-    funcDef->Dump();
+    for (const auto &def : *funcDefs)
+    {
+        def->Dump();
+    }
     cout << " }";
 }
 string CompUnitAST::DumpIR() const
 {
-    return funcDef->DumpIR();
-}
-int CompUnitAST::CalcExp()
-{
-    return funcDef->CalcExp();
+    for (const auto &def : *funcDefs)
+    {
+        def->DumpIR();
+        cout << endl;
+    }
+    return "";
 }
 
 void FuncDefAST::Dump() const
 {
     cout << "FuncDefAST { " << endl;
-    funcType->Dump();
+    if (funcType == EBType::Int)
+        cout << "int";
+    else if (funcType == EBType::Void)
+        cout << "void";
     cout << ", " << ident << ", ";
     block->Dump();
     cout << " }" << endl;
 }
 string FuncDefAST::DumpIR() const
 {
-    cout << "fun @" << ident << "(): ";
-    funcType->DumpIR();
+    DeclData data;
+    data.ident = ident;
+    data.type = EDecl::Func;
+    data.bType = funcType;
+    symbolManager.AddSymbol(ident, data);
+    symbolManager.EnterBlock();
+    cout << "fun @" << ident << "(";
+    for (int i = 0; i < fParams->size(); i++)
+    {
+        (*fParams)[i]->DumpIR();
+        if (i != fParams->size() - 1)
+            cout << ",";
+    }
+    cout << "): ";
+    if (funcType == EBType::Int)
+    {
+        cout << "i32";
+    }
     cout << " {" << endl;
     cout << "\%entry:" << endl;
+    for (const auto &param : *fParams)
+    {
+        DeclData tmp;
+        tmp.bType = (EBType)(param->GetType());
+        tmp.ident = param->GetIdent();
+        cout << tmp.ident << endl;
+        tmp.type = EDecl::Variable;
+        tmp = symbolManager.AddSymbol(tmp.ident, tmp);
+        cout << "\t\%" << tmp.globalIdent << " = alloc i32" << endl;
+    }
     block->DumpIR();
+    if (funcType == EBType::Void)
+        cout << "\tret" << endl;
     cout << endl
          << "}";
+    symbolManager.ExitBlock();
     return "";
 }
 int FuncDefAST::CalcExp()
 {
     return block->CalcExp();
 }
-
-void FuncTypeAST::Dump() const
+void FuncFParamAST::Dump() const
 {
-    cout << "FuncType{ " << (int)(type) << " }" << endl;
+    cout << "FuncFParamAST { ident: " << ident << " type: "
+         << "int"
+         << " } ";
 }
-string FuncTypeAST::DumpIR() const
+string FuncFParamAST::DumpIR() const
 {
-    cout << "i32";
+    cout << "@" << ident << ": ";
+    if (type == EBType::Int)
+        cout << "i32";
     return "";
+}
+int FuncFParamAST::GetType() const
+{
+    return (int)(type);
+}
+string FuncFParamAST::GetIdent() const
+{
+    return ident;
+}
+void FuncRParamAST::Dump() const
+{
+}
+string FuncRParamAST::DumpIR() const
+{
 }
 
 void BlockAST::Dump() const
