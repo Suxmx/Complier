@@ -42,6 +42,7 @@ Else          "else"
 While         "while"
 Break         "break"
 Continue      "continue"
+Void          "void"
 
 %%
 
@@ -55,7 +56,8 @@ Continue      "continue"
 {Const}         { return CONST; }
 {While}         { return WHILE; }
 {Break}         { return BREAK; }
-{Continue}      {return CONTINUE; }
+{Continue}      { return CONTINUE; }
+{Void}          { return VOID; }
 
 
 {Identifier}    { yylval.str_val = new string(yytext); return IDENT; }

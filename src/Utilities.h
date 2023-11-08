@@ -75,7 +75,8 @@ enum class EDecl
 };
 enum class EBType
 {
-    Int = 1
+    Int = 1,
+    Void =2
 };
 enum class EBlockItem
 {

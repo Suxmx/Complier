@@ -48,7 +48,7 @@ public:
 class FuncTypeAST : public BaseAST
 {
 public:
-    string type;
+    EBType type;
     void Dump() const override;
     string DumpIR() const override;
 };

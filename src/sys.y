@@ -38,7 +38,7 @@ using namespace std;
 
 // lexer 返回的所有 token 种类的声明
 // 注意 IDENT 和 INT_CONST 会返回 token 的值, 分别对应 str_val 和 int_val
-%token INT RETURN LESS LARGER AND OR LESSEQ LARGEREQ EQ NE CONST WHILE BREAK CONTINUE
+%token INT RETURN LESS LARGER AND OR LESSEQ LARGEREQ EQ NE CONST WHILE BREAK CONTINUE VOID
 %token <str_val> IDENT
 %token <int_val> INT_CONST
 /* %nonassoc LOWER_THAN_ELSE */
@@ -46,24 +46,74 @@ using namespace std;
 
 // 非终结符的类型定义
 %type <ast_val> FuncDef FuncType Block Stmt PrimaryExp UnaryExp Exp AddExp MulExp RelExp EqExp LAndExp LOrExp
-%type <ast_val> Decl ConstDecl ConstDef InitVal BlockItem  VarDecl VarDef
+%type <ast_val> Decl ConstDecl ConstDef InitVal BlockItem  VarDecl VarDef FuncFParam FuncRParam
 %type <int_val> Number AddOp MulOp RelOp EqOp LAndOp LOrOp BType
 %type <str_val> UnaryOp LVal
-%type <vec_val> BlockItemList ConstDefList VarDefList
+%type <vec_val> BlockItemList ConstDefList VarDefList FuncDefList FuncFParamList FuncRParamList
 %%
 
 // 开始符, CompUnit ::= FuncDef, 大括号后声明了解析完成后 parser 要做的事情
-// 之前我们定义了 FuncDef 会返回一个 str_val, 也就是字符串指针
+// 之前我们定义了 FuncDef 会返回一个 str_val, 也就是字符串指针  
 // 而 parser 一旦解析完 CompUnit, 就说明所有的 token 都被解析了, 即解析结束了
 // 此时我们应该把 FuncDef 返回的结果收集起来, 作为 AST 传给调用 parser 的函数
 // $1 指代规则里第一个符号的返回值, 也就是 FuncDef 的返回值
 CompUnit
-  : FuncDef {
+  : FuncDefList {
     auto comp=make_unique<CompUnitAST>();
     comp->funcDef=unique_ptr<BaseAST>($1);
     ast = move(comp);
   }
   ;
+FuncDefList
+  :FuncDef
+  {
+    auto list = new vector<unique_ptr<BaseAST>>();
+    list->push_back(unique_ptr<BaseAST>($1));
+    $$ = list;
+  }
+  |FuncDefList FuncDef
+  {
+    auto list = $1;
+    list->push_back(unique_ptr<BaseAST>($2));
+    $$ = list;
+  }
+FuncFParam
+  :BType IDENT
+  {
+
+  }
+FuncFParamList
+  :FuncFParam
+  {
+    auto list = new vector<unique_ptr<BaseAST>>();
+    list->push_back(unique_ptr<BaseAST>($1));
+    $$ = list;
+  }
+  |FuncFParamList ',' FuncFParam
+  {
+    auto list = $1;
+    list->push_back(unique_ptr<BaseAST>($3));
+    $$ = list;
+  }
+FuncRParam
+  :Exp
+  {
+    
+  }
+FuncRParamList
+  :FuncRParam
+  {
+    auto list = new vector<unique_ptr<BaseAST>>();
+    list->push_back(unique_ptr<BaseAST>($1));
+    $$ = list;
+  }
+  |FuncRParamList ',' FuncRParam
+  {
+    auto list = $1;
+    list->push_back(unique_ptr<BaseAST>($3));
+    $$ = list;
+  }
+
 
 // FuncDef ::= FuncType IDENT '(' ')' Block;
 // 我们这里可以直接写 '(' 和 ')', 因为之前在 lexer 里已经处理了单个字符的情况
@@ -88,10 +138,14 @@ FuncDef
 
 // 同上, 不再解释 
 FuncType
-  : INT {
+  :INT {
     auto funcType=new FuncTypeAST();
     funcType->type="int";
     $$ = funcType;
+  }
+  |VOID
+  {
+
   }
   ;
 Decl
@@ -330,7 +384,12 @@ UnaryExp
     unaryExp->unaryExp = unique_ptr<BaseAST>($2);
     unaryExp->op = (*unique_ptr<string>($1))[0];
     $$ = unaryExp;
-  };
+  }
+  |IDENT '('FuncRParamList ')'
+  {
+
+  }
+  ;
 UnaryOp
   : '+'
   {

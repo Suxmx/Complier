@@ -42,7 +42,7 @@ int FuncDefAST::CalcExp()
 
 void FuncTypeAST::Dump() const
 {
-    cout << "FuncType{ " << type << " }" << endl;
+    cout << "FuncType{ " << (int)(type) << " }" << endl;
 }
 string FuncTypeAST::DumpIR() const
 {
