@@ -194,20 +194,20 @@ void Visit(const koopa_raw_function_t &function)
     }
     for (int i = 0; i < function->params.len; i++)
     {
-        auto ptr = func->params.buffer[i];
+        auto ptr = function->params.buffer[i];
         koopa_raw_value_t param = reinterpret_cast<koopa_raw_value_t>(ptr);
         if (i < 8)
         {
             auto reg = &paramRegs[i];
             valueMap[param] = reg;
-            reg.value = param;
+            reg->value = param;
         }
         else
         {
             Reg stack;
             stack.offset = (i - 8) * 4;
-            stack.value = value;
-            valueMap[param] = stack;
+            stack.value = param;
+            valueMap[param] = &stack;
         }
 
     }
@@ -438,7 +438,7 @@ void Visit(const koopa_raw_call_t &call, const koopa_raw_value_t &value)
     for (int i = 0; i < call.args.len; i++)
     {
         auto ptr = call.args.buffer[i];
-        koopa_raw_value_t ptrValue = reinterpret_pointer_cast<koopa_raw_value_t>(ptr);
+        koopa_raw_value_t ptrValue = reinterpret_cast<koopa_raw_value_t>(ptr);
         auto reg = Visit(ptrValue);
         if (i < 8)
         {
