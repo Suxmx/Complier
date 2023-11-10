@@ -67,6 +67,7 @@ int stackTop = 0;
 int stackSize = 0;
 vector<Reg> regs;
 vector<Reg> paramRegs;
+vector<Reg> tmpRegs;
 map<const koopa_raw_value_t, Reg *> valueMap;
 
 void Visit(const koopa_raw_program_t &program);
@@ -160,11 +161,17 @@ void Visit(const koopa_raw_function_t &function)
             if (inst->kind.tag == KOOPA_RVT_CALL)
             {
                 needSaveRa = true;
-                if (inst->kind.data.call.args.len > maxArgNum)
-                    maxArgNum = inst->kind.data.call.args.len;
+
+                int argNum = inst->kind.data.call.args.len;
+
+                if (argNum > maxArgNum)
+                {
+                    maxArgNum = argNum;
+                }
             }
         }
     }
+
     if (maxArgNum > 8)
     {
         stackSize += (maxArgNum - 8) * 4;
@@ -172,11 +179,11 @@ void Visit(const koopa_raw_function_t &function)
     }
 
     stackSize = ceil(stackSize / 16.0) * 16;
-    if (stackSize <= 2047)
+    if (stackSize <= 2047 && stackSize > 0)
     {
         cout << "\taddi sp, sp, -" << stackSize << endl;
     }
-    else
+    else if (stackSize > 2047)
     {
         cout << "\tli t0, " << -1 * stackSize;
         cout << "\tadd sp, sp, t0" << endl;
@@ -205,9 +212,10 @@ void Visit(const koopa_raw_function_t &function)
         else
         {
             Reg stack;
-            stack.offset = (i - 8) * 4;
+            stack.offset = (i - 8) * 4 + stackSize;
             stack.value = param;
-            valueMap[param] = &stack;
+            tmpRegs.push_back(stack);
+            valueMap[param] = &(tmpRegs[tmpRegs.size() - 1]);
         }
     }
     Visit(function->bbs);
@@ -265,6 +273,7 @@ Reg *Visit(const koopa_raw_value_t &value)
         break;
     case KOOPA_RVT_CALL:
         Visit(value->kind.data.call, value);
+        return nullptr;
         break;
 
     default:
@@ -272,19 +281,28 @@ Reg *Visit(const koopa_raw_value_t &value)
         return nullptr;
         break;
     }
+    return nullptr;
 }
 
 void Visit(const koopa_raw_return_t &ret)
 {
-    Reg *res = Visit(ret.value);
-    if (res->offset >= 0)
+    if (ret.value && ret.value->ty->tag != KOOPA_RTT_UNIT)
     {
-        cout << "\tlw a0, " << res->offset << "(sp)" << endl;
+
+        Reg *res = Visit(ret.value);
+        if (res->offset >= 0)
+        {
+            cout << "\tlw a0, " << res->offset << "(sp)" << endl;
+        }
+        else
+            cout << "\tmv a0," << res->GetRegName() << endl;
+        if (needSaveRa)
+            cout << "\tlw ra, " << stackSize - 4 << "(sp)" << endl;
     }
-    else
-        cout << "\tmv a0," << res->GetRegName() << endl;
-    cout << "\taddi sp, sp, " << stackSize << endl;
+    if (stackSize > 0)
+        cout << "\taddi sp, sp, " << stackSize << endl;
     cout << "\tret" << endl;
+    cout << endl;
 }
 
 Reg *Visit(const koopa_raw_integer_t &integer, const koopa_raw_value_t &value)
@@ -441,7 +459,7 @@ void Visit(const koopa_raw_call_t &call, const koopa_raw_value_t &value)
         if (i < 8)
         {
             if (reg->offset == -1)
-                cout << "\tmv " << paramRegNames[i] << ", " << reg << endl;
+                cout << "\tmv " << paramRegNames[i] << ", " << reg->GetRegName() << endl;
             else
             {
                 cout << "\tlw t0, " << reg->offset << "(sp)" << endl;
@@ -450,8 +468,23 @@ void Visit(const koopa_raw_call_t &call, const koopa_raw_value_t &value)
         }
         else
         {
+            if (reg->offset == -1)
+                cout << "\tsw " << reg->GetRegName() << ", " << (i - 8) * 4 << "(sp)" << endl;
+            else
+            {
+                cout << "\tlw t0, " << reg->offset << "(sp)" << endl;
+                cout << "\tsw t0, " << (i - 8) * 4 << "(sp)" << endl;
+            }
         }
+        ReleaseRegs(reg);
     }
+    cout << "\tcall " << call.callee->name + 1 << endl;
+    Reg ret;
+    ret.offset = stackTop;
+    tmpRegs.push_back(ret);
+    cout << "\tsw a0, " << stackTop << "(sp)" << endl;
+    stackTop += 4;
+    valueMap[value] = &(tmpRegs[tmpRegs.size() - 1]);
 }
 
 Reg *FindReg(const koopa_raw_value_t &value)
@@ -492,15 +525,17 @@ void InitRegs()
     }
     for (int i = 0; i < paramRegNames.size(); i++)
     {
-        Reg reg(i);
+        Reg reg(i + regNames.size());
         reg.stats = 0;
         reg.type = ERISVSave::Reg;
-        regs.push_back(reg);
+        paramRegs.push_back(reg);
     }
 }
 
 void ReleaseRegs(Reg *reg)
 {
+    if (reg->GetReg() < 0 || reg->GetReg() >= regs.size())
+        return;
     regs[reg->GetReg()].stats = 0;
     if (regs[reg->GetReg()].offset == -1)
         valueMap.erase(regs[reg->GetReg()].value);
