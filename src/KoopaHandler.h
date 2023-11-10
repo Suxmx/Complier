@@ -1,129 +1,57 @@
 #pragma once
-
-#include "koopa.h"
 #include <iostream>
+#include <string>
 #include <cassert>
-#include <vector>
 #include <map>
 #include <cmath>
-#include <string>
+#include "koopa.h"
 
-using namespace std;
 
-vector<string> regNames = {"t1", "t2", "t3", "t4", "t5", "t6"};
-vector<string> paramRegNames = {"a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"};
+struct Reg { int reg_name; int reg_offset; };
+std::string reg_names[16] = {"t0", "t1", "t2", "t3", "t4", "t5", "t6",
+    "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "x0"};
+koopa_raw_value_t registers[16];
+int reg_stats[16] = {0};
+koopa_raw_value_t present_value = 0;
+std::map<const koopa_raw_value_t, Reg> value_map;
+int global_num = 0;
+std::map<const koopa_raw_value_t, std::string> global_values;
+int stack_size = 0, stack_top = 0;
+bool restore_ra = false;
 
-struct Reg
-{
-private:
-    int regNum;
-    string regName;
-
-public:
-    ERISVSave type;
-    int stats;
-    int offset;
-    koopa_raw_value_t value;
-
-    Reg()
-    {
-        offset = -1;
-        SetReg(0);
-    }
-
-    Reg(int reg)
-    {
-        offset = -1;
-        this->regNum = reg;
-        if (reg >= 0 && reg < regNames.size())
-            regName = regNames[reg];
-        else if (reg >= regNames.size() && reg <= regNames.size() + paramRegNames.size() - 1)
-            regName = paramRegNames[reg - regNames.size()];
-        else
-            regName = "Stack";
-    }
-
-    string GetRegName()
-    {
-        return regName;
-    }
-
-    int GetReg()
-    {
-        return regNum;
-    }
-
-    void SetReg(int reg)
-    {
-        assert(reg >= 0 && reg < regNames.size() + paramRegNames.size());
-        this->regNum = reg;
-        if (reg >= 0 && reg < regNames.size())
-            regName = regNames[reg];
-        else if (reg >= regNames.size() && reg <= regNames.size() + paramRegNames.size() - 1)
-            regName = paramRegNames[reg - regNames.size()];
-        else
-            regName = "Stack";
-    }
-};
-
-bool init = false;
-bool infunc = false;
-bool needSaveRa;
-int stackTop = 0;
-int stackSize = 0;
-vector<Reg> regs;
-vector<Reg> paramRegs;
-vector<Reg> tmpRegs;
-map<const koopa_raw_value_t, Reg *> valueMap;
 
 void Visit(const koopa_raw_program_t &program);
-
 void Visit(const koopa_raw_slice_t &slice);
-
 void Visit(const koopa_raw_function_t &func);
-
-void Visit(const koopa_raw_basic_block_t &block);
-
-Reg *Visit(const koopa_raw_value_t &value);
-
+void Visit(const koopa_raw_basic_block_t &bb);
 void Visit(const koopa_raw_return_t &ret);
+Reg Visit(const koopa_raw_value_t &value);
+Reg Visit(const koopa_raw_integer_t &integer);
+Reg Visit(const koopa_raw_binary_t &binary);
+Reg Visit(const koopa_raw_load_t &load);
+void Visit(const koopa_raw_store_t &store);
+void Visit(const koopa_raw_branch_t &branch);
+void Visit(const koopa_raw_jump_t &jump);
+Reg Visit(const koopa_raw_call_t &call);
+Reg Visit(const koopa_raw_get_elem_ptr_t &get_elem_ptr);
+Reg Visit(const koopa_raw_get_ptr_t &get_ptr);
+std::string Visit(const koopa_raw_global_alloc_t &global);
+int find_reg(int stat);
+void clear_registers(bool save_temps = true);
+int cal_size(const koopa_raw_type_t &ty);
+void init_aggregate(const koopa_raw_value_t &aggr);
 
-Reg *Visit(const koopa_raw_integer_t &integer, const koopa_raw_value_t &value);
-
-Reg *Visit(const koopa_raw_binary_t &binary, const koopa_raw_value_t &value);
-
-Reg *Visit(const koopa_raw_store_t &store, const koopa_raw_value_t &value);
-
-Reg *Visit(const koopa_raw_load_t &load, const koopa_raw_value_t &value);
-
-void Visit(const koopa_raw_branch_t &branch, const koopa_raw_value_t &value);
-
-void Visit(const koopa_raw_jump_t &jump, const koopa_raw_value_t &value);
-
-void Visit(const koopa_raw_global_alloc_t &globalAlloc, const koopa_raw_value_t &value);
-
-Reg *Visit(const koopa_raw_call_t &call, const koopa_raw_value_t &value);
-
-Reg *FindReg(const koopa_raw_value_t &value);
-
-Reg *SaveToStack(const koopa_raw_value_t &value);
-
-void InitRegs();
-
-void ReleaseRegs(Reg *reg);
 
 void Visit(const koopa_raw_program_t &program)
 {
-    if (!init)
-        InitRegs();
     Visit(program.values);
-    infunc = true;
     Visit(program.funcs);
 }
 
+
 void Visit(const koopa_raw_slice_t &slice)
 {
-    for (int i = 0; i < slice.len; i++)
+    for (size_t i = 0; i < slice.len; i++)
     {
         auto ptr = slice.buffer[i];
         switch (slice.kind)
@@ -139,477 +67,738 @@ void Visit(const koopa_raw_slice_t &slice)
             break;
         default:
             assert(false);
-            break;
         }
     }
 }
 
-void Visit(const koopa_raw_function_t &function)
+
+void Visit(const koopa_raw_function_t &func)
 {
-    if (function->bbs.len == 0)
-        return;
-    int maxArgNum = -1;
-
-    stackSize = 0;
-    stackTop = 0;
-    needSaveRa = false;
-
-    cout << "\t.text" << endl;
-    cout << "\t.global " << (function->name + 1) << endl;
-    cout << (function->name + 1) << ":" << endl;
-    for (int i = 0; i < function->bbs.len; i++)
+    if (func->bbs.len == 0)return;
+    std::cout << "\t.text" << std::endl;
+    std::cout << "\t.globl " << (func->name + 1) << std::endl;
+    std::cout << (func->name + 1) << ":" << std::endl;
+    assert(stack_size == 0); assert(stack_top == 0);
+    int max_arg_num = 0;
+    for (size_t i = 0; i < func->bbs.len; i++)
     {
-        auto ptr = function->bbs.buffer[i];
-        auto block = reinterpret_cast<koopa_raw_basic_block_t>(ptr);
-        // cout<<block->insts.len<<endl;
-        for (int j = 0; j < block->insts.len; j++)
+        auto ptr = func->bbs.buffer[i];
+        koopa_raw_basic_block_t bb =
+            reinterpret_cast<koopa_raw_basic_block_t>(ptr);
+        for (size_t j = 0; j < bb->insts.len; j++)
         {
-
-            ptr = block->insts.buffer[j];
-            auto inst = reinterpret_cast<koopa_raw_value_t>(ptr);
+            ptr = bb->insts.buffer[j];
+            koopa_raw_value_t inst = reinterpret_cast<koopa_raw_value_t>(ptr);
             if (inst->ty->tag != KOOPA_RTT_UNIT)
             {
-                stackSize += 4;
+                if (inst->kind.tag == KOOPA_RVT_ALLOC)
+                    stack_size += cal_size(inst->ty->data.pointer.base);
+                else stack_size += 4;
             }
             if (inst->kind.tag == KOOPA_RVT_CALL)
             {
-                needSaveRa = true;
-
-                int argNum = inst->kind.data.call.args.len;
-
-                if (argNum > maxArgNum)
-                {
-                    maxArgNum = argNum;
-                }
+                restore_ra = true;
+                int arg_num = inst->kind.data.call.args.len;
+                if (arg_num > max_arg_num)max_arg_num = arg_num;
             }
         }
     }
-
-    if (maxArgNum > 8)
+    int arg_stack_size = 0;
+    if (max_arg_num > 8)arg_stack_size = (max_arg_num - 8) * 4;
+    stack_size += arg_stack_size;
+    stack_top += arg_stack_size;
+    if (restore_ra)stack_size += 4;
+    stack_size = ceil(stack_size / 16.0) * 16;
+    if (stack_size > 0 && stack_size <= 2048)
+        std::cout << "\taddi  sp, sp, -" << stack_size << std::endl;
+    else if (stack_size > 2048)
     {
-        stackSize += (maxArgNum - 8) * 4;
-        stackTop += (maxArgNum - 8) * 4;
+        std::cout << "\tli    s11, -" << stack_size << std::endl;
+        std::cout << "\tadd   sp, sp, s11" << std::endl;
     }
-
-    stackSize = ceil(stackSize / 16.0) * 16;
-    if (stackSize <= 2047 && stackSize > 0)
+    if (restore_ra)
     {
-        cout << "\taddi sp, sp, -" << stackSize << endl;
-    }
-    else if (stackSize > 2047)
-    {
-        cout << "\tli t0, " << -1 * stackSize;
-        cout << "\tadd sp, sp, t0" << endl;
-    }
-    if (needSaveRa)
-    {
-        if (stackSize - 4 <= 2047)
-            cout << "\tsw ra, " << stackSize - 4 << "(sp)" << endl;
+        if (stack_size - 4 >= -2048 && stack_size - 4 <= 2047)
+            std::cout << "\tsw    ra, " << stack_size - 4 << "(sp)" <<
+                std::endl;
         else
         {
-            cout << "\tli t0, " << stackSize - 4 << endl;
-            cout << "\tadd s11, t0, sp" << endl;
-            cout << "\tsw ra, (s11)" << endl;
+            std::cout << "\tli    s11, " << stack_size - 4 << std::endl;
+            std::cout << "\tadd   s11, sp, s11" << std::endl;
+            std::cout << "\tsw    ra, (s11)" << std::endl;
         }
     }
-    for (int i = 0; i < function->params.len; i++)
+    for (size_t i = 0; i < func->params.len; i++)
     {
-        auto ptr = function->params.buffer[i];
+        auto ptr = func->params.buffer[i];
         koopa_raw_value_t param = reinterpret_cast<koopa_raw_value_t>(ptr);
         if (i < 8)
         {
-            auto reg = &paramRegs[i];
-            valueMap[param] = reg;
-            reg->value = param;
+            struct Reg param_var = { static_cast<int>(i + 7), -1 };
+            value_map[param] = param_var;
+            // reg_stats[i + 7] = 1;
+            // registers[i + 7] = param;
+            // for now param will only be used once at the beginning of a
+            // function and never used again, so we don't need to maintain
+            // the correct register states for it
         }
         else
         {
-            Reg stack;
-            stack.offset = (i - 8) * 4 + stackSize;
-            stack.value = param;
-            tmpRegs.push_back(stack);
-            valueMap[param] = &(tmpRegs[tmpRegs.size() - 1]);
+            int offset = stack_size + (i - 8) * 4;
+            struct Reg param_var = { -1, offset };
+            value_map[param] = param_var;
         }
     }
-    Visit(function->bbs);
+    Visit(func->bbs);
+    stack_size = stack_top = 0;
+    for (int i = 0; i < 16; i++)reg_stats[i] = 0;
+    value_map.clear();
+    restore_ra = false;
+    std::cout << std::endl;
 }
 
-void Visit(const koopa_raw_basic_block_t &block)
+
+void Visit(const koopa_raw_basic_block_t &bb)
 {
-    string name = (block->name + 1);
-    if (name.compare("entry"))
-        cout << (block->name + 1) << ":" << endl;
-    Visit(block->insts);
+    std::cout << bb->name + 1 << ":" << std::endl;
+    Visit(bb->insts);
 }
 
-Reg *Visit(const koopa_raw_value_t &value)
+
+Reg Visit(const koopa_raw_value_t &value)
 {
-    if (valueMap.count(value))
-        return valueMap[value];
-    switch (value->kind.tag)
+    koopa_raw_value_t old_value = present_value;
+    present_value = value;
+    if (value_map.count(value))
+    {
+        if (value_map[value].reg_name == -1)
+        {
+            int reg_name = find_reg(1);
+            value_map[value].reg_name = reg_name;
+            int reg_offset = value_map[value].reg_offset;
+            if (reg_offset >= -2048 && reg_offset <= 2047)
+                std::cout << "\tlw    " << reg_names[reg_name] << ", " <<
+                    reg_offset << "(sp)" << std::endl;
+            else
+            {
+                std::cout << "\tli    s11, " << reg_offset << std::endl;
+                std::cout << "\tadd   s11, sp, s11" << std::endl;
+                std::cout << "\tlw    " << reg_names[reg_name] << ", (s11)" <<
+                    std::endl;
+            }
+        }
+        present_value = old_value;
+        return value_map[value];
+    }
+
+    const auto &kind = value->kind;
+    struct Reg result_var = {-1, -1};
+    switch (kind.tag)
     {
     case KOOPA_RVT_RETURN:
-        Visit(value->kind.data.ret);
-        return nullptr;
+        Visit(kind.data.ret);
         break;
     case KOOPA_RVT_INTEGER:
-        return Visit(value->kind.data.integer, value);
+        result_var = Visit(kind.data.integer);
         break;
     case KOOPA_RVT_BINARY:
-        return Visit(value->kind.data.binary, value);
+        result_var = Visit(kind.data.binary);
+        value_map[value] = result_var;
+        assert(result_var.reg_name >= 0);
         break;
     case KOOPA_RVT_ALLOC:
-
-        if (valueMap.count(value))
-        {
-            return valueMap[value];
-        }
-        else
-        {
-            auto stackReg = SaveToStack(value);
-            return stackReg;
-        }
-        break;
-    case KOOPA_RVT_STORE:
-        return Visit(value->kind.data.store, value);
-        break;
-    case KOOPA_RVT_LOAD:
-        return Visit(value->kind.data.load, value);
-        break;
-    case KOOPA_RVT_JUMP:
-        Visit(value->kind.data.jump, value);
-        return nullptr;
-        break;
-    case KOOPA_RVT_BRANCH:
-        Visit(value->kind.data.branch, value);
-        return nullptr;
-        break;
-    case KOOPA_RVT_CALL:
-        return Visit(value->kind.data.call, value);
-
+        result_var.reg_offset = stack_top;
+        assert(value->ty->tag == KOOPA_RTT_POINTER);
+        stack_top += cal_size(value->ty->data.pointer.base);
+        value_map[value] = result_var;
         break;
     case KOOPA_RVT_GLOBAL_ALLOC:
-        Visit(value->kind.data.global_alloc, value);
+        global_values[value] = Visit(kind.data.global_alloc);
         break;
-    case KOOPA_RVT_ZERO_INIT:
-        return nullptr;
+    case KOOPA_RVT_LOAD:
+        result_var = Visit(kind.data.load);
+        value_map[value] = result_var;
+        assert(result_var.reg_name >= 0);
+        break;
+    case KOOPA_RVT_STORE:
+        Visit(kind.data.store);
+        break;
+    case KOOPA_RVT_BRANCH:
+        Visit(kind.data.branch);
+        break;
+    case KOOPA_RVT_GET_ELEM_PTR:
+        result_var = Visit(kind.data.get_elem_ptr);
+        value_map[value] = result_var;
+        assert(result_var.reg_name >= 0);
+        break;
+    case KOOPA_RVT_GET_PTR:
+        result_var = Visit(kind.data.get_ptr);
+        value_map[value] = result_var;
+        assert(result_var.reg_name >= 0);
+        break;
+    case KOOPA_RVT_JUMP:
+        Visit(kind.data.jump);
+        break;
+    case KOOPA_RVT_CALL:
+        result_var = Visit(kind.data.call);
+        value_map[value] = result_var;
+        if (value->ty->tag != KOOPA_RTT_UNIT)  // has ret
+        {
+            registers[result_var.reg_name] = value;
+            reg_stats[result_var.reg_name] = 1;
+        }
+        assert(result_var.reg_name >= 0);
         break;
     default:
-        cout << value->kind.tag;
-        return nullptr;
-        break;
+        assert(false);
     }
-    return nullptr;
+    present_value = old_value;
+    return result_var;
 }
+
 
 void Visit(const koopa_raw_return_t &ret)
 {
-    if (ret.value && ret.value->ty->tag != KOOPA_RTT_UNIT)
+    koopa_raw_value_t ret_value = ret.value;
+    if (ret_value)
     {
-
-        Reg *res = Visit(ret.value);
-        if (res->offset >= 0)
-        {
-            cout << "\tlw a0, " << res->offset << "(sp)" << endl;
-        }
+        struct Reg result_var = Visit(ret_value);
+        assert(result_var.reg_name >= 0);
+        if (result_var.reg_name != 7)
+            std::cout << "\tmv    a0, " << reg_names[result_var.reg_name] <<
+                std::endl;
+    }
+    clear_registers(false);
+    if (restore_ra)
+    {
+        if (stack_size - 4 >= -2048 && stack_size - 4 <= 2047)
+            std::cout << "\tlw    ra, " << stack_size - 4 << "(sp)" <<
+                std::endl;
         else
-            cout << "\tmv a0," << res->GetRegName() << endl;
-        
+        {
+            std::cout << "\tli    t0, " << stack_size - 4 << std::endl;
+            std::cout << "\tadd   t0, sp, t0" << std::endl;
+            std::cout << "\tlw    ra, (t0)" << std::endl;
+        }
     }
-    if (needSaveRa)
-            cout << "\tlw ra, " << stackSize - 4 << "(sp)" << endl;
-    if (stackSize > 0)
-        cout << "\taddi sp, sp, " << stackSize << endl;
-    cout << "\tret" << endl;
-    cout << endl;
+    if (stack_size > 0 && stack_size <= 2047)
+        std::cout << "\taddi  sp, sp, " << stack_size << std::endl;
+    else if (stack_size > 2047)
+    {
+        std::cout << "\tli    t0, " << stack_size << std::endl;
+        std::cout << "\tadd   sp, sp, t0" << std::endl;
+    }
+    std::cout << "\tret" << std::endl;
 }
 
-Reg *Visit(const koopa_raw_integer_t &integer, const koopa_raw_value_t &value)
+
+Reg Visit(const koopa_raw_integer_t &integer)
 {
-    Reg *res;
-    if (infunc)
-    {
-        res = FindReg(value);
-        cout << "\tli " << res->GetRegName() << ", " << integer.value << endl;
-    }
-    else
-    {
-        Reg tmp;
-        tmp.offset = integer.value;
-        tmpRegs.push_back(tmp);
-        res = &(tmpRegs[tmpRegs.size() - 1]);
-    }
-    return res;
+    int32_t int_val = integer.value;
+    struct Reg result_var = {-1, -1};
+    if (int_val == 0) { result_var.reg_name = 15; return result_var; }
+    result_var.reg_name = find_reg(0);
+    std::cout << "\tli    " << reg_names[result_var.reg_name] << ", " <<
+        int_val << std::endl;
+    return result_var;
 }
 
-Reg *Visit(const koopa_raw_binary_t &binary, const koopa_raw_value_t &value)
+
+Reg Visit(const koopa_raw_binary_t &binary)
 {
-    Reg *lhs = Visit(binary.lhs);
-    Reg *rhs = Visit(binary.rhs);
-    Reg *res = FindReg(value);
-    if (lhs->offset >= 0)
-    {
-        auto tmp = FindReg(binary.lhs);
-        cout << "\tlw " << tmp->GetRegName() << ", " << lhs->offset << "(sp)" << endl;
-        lhs = tmp;
-    }
-    if (rhs->offset >= 0)
-    {
-        auto tmp = FindReg(binary.rhs);
-        cout << "\tlw " << tmp->GetRegName() << ", " << rhs->offset << "(sp)" << endl;
-        rhs = tmp;
-    }
+    struct Reg left_val = Visit(binary.lhs);
+    int left_reg = left_val.reg_name;
+    int old_stat = reg_stats[left_reg];
+    reg_stats[left_reg] = 2;
+    struct Reg right_val = Visit(binary.rhs);
+    int right_reg = right_val.reg_name;
+    reg_stats[left_reg] = old_stat;
+    old_stat = reg_stats[right_reg];
+    reg_stats[right_reg] = 2;
+    struct Reg result_var = {find_reg(1), -1};
+    reg_stats[right_reg] = old_stat;
+    std::string left_name = reg_names[left_reg];
+    std::string right_name = reg_names[right_reg];
+    std::string result_name = reg_names[result_var.reg_name];
     switch (binary.op)
     {
-    case KOOPA_RBO_ADD:
-        cout << "\tadd " << res->GetRegName() << ", " << lhs->GetRegName() << ", " << rhs->GetRegName() << endl;
+    case 0:  // ne
+        if (right_name == "x0")
+        {
+            std::cout << "\tsnez  " << result_name << ", " << left_name <<
+                std::endl;
+            break;
+        }
+        if (left_name == "x0")
+        {
+            std::cout << "\tsnez  " << result_name << ", " << right_name <<
+                std::endl;
+            break;
+        }
+        std::cout << "\txor   " << result_name << ", " << left_name << ", " <<
+            right_name << std::endl;
+        std::cout << "\tsnez  " << result_name << ", " << result_name <<
+            std::endl;
         break;
-    case KOOPA_RBO_SUB:
-        cout << "\tsub " << res->GetRegName() << ", " << lhs->GetRegName() << ", " << rhs->GetRegName() << endl;
+    case 1:  // eq
+        if (right_name == "x0")
+        {
+            std::cout << "\tseqz  " << result_name << ", " << left_name <<
+                std::endl;
+            break;
+        }
+        if (left_name == "x0")
+        {
+            std::cout << "\tseqz  " << result_name << ", " << right_name <<
+                std::endl;
+            break;
+        }
+        std::cout << "\txor   " << result_name << ", " << left_name << ", " <<
+            right_name << std::endl;
+        std::cout << "\tseqz  " << result_name << ", " << result_name <<
+            std::endl;
         break;
-    case KOOPA_RBO_EQ:
-        cout << "\txor " << res->GetRegName() << ", " << lhs->GetRegName() << ", " << rhs->GetRegName() << endl;
-        cout << "\tseqz " << res->GetRegName() << ", " << res->GetRegName() << endl;
+    case 2:  // gt
+        std::cout << "\tsgt   " << result_name << ", " << left_name << ", " <<
+            right_name << std::endl;
         break;
-    case KOOPA_RBO_NOT_EQ:
-        cout << "\txor " << res->GetRegName() << ", " << lhs->GetRegName() << ", " << rhs->GetRegName() << endl;
-        cout << "\tsnez " << res->GetRegName() << ", " << res->GetRegName() << endl;
+    case 3:  // lt
+        std::cout << "\tslt   " << result_name << ", " << left_name << ", " <<
+            right_name << std::endl;
         break;
-    case KOOPA_RBO_MUL:
-        cout << "\tmul " << res->GetRegName() << ", " << lhs->GetRegName() << ", " << rhs->GetRegName() << endl;
+    case 4:  // ge
+        std::cout << "\tslt   " << result_name << ", " << left_name << ", " <<
+            right_name << std::endl;
+        std::cout << "\txori  " << result_name << ", " << result_name << ", 1"
+            << std::endl;
         break;
-    case KOOPA_RBO_DIV:
-        cout << "\tdiv " << res->GetRegName() << ", " << lhs->GetRegName() << ", " << rhs->GetRegName() << endl;
+    case 5:  // le
+        std::cout << "\tsgt   " << result_name << ", " << left_name << ", " <<
+            right_name << std::endl;
+        std::cout << "\txori  " << result_name << ", " << result_name << ", 1"
+            << std::endl;
         break;
-    case KOOPA_RBO_MOD:
-        cout << "\trem " << res->GetRegName() << ", " << lhs->GetRegName() << ", " << rhs->GetRegName() << endl;
+    case 6:  // add
+        std::cout << "\tadd   " << result_name << ", " << left_name << ", " <<
+            right_name << std::endl;
         break;
-    case KOOPA_RBO_LE:
-        cout << "\tsgt " << res->GetRegName() << ", " << lhs->GetRegName() << ", " << rhs->GetRegName() << endl;
-        cout << "\tseqz " << res->GetRegName() << ", " << res->GetRegName() << endl;
+    case 7:  // sub
+        std::cout << "\tsub   " << result_name << ", " << left_name << ", " <<
+            right_name << std::endl;
         break;
-    case KOOPA_RBO_GE:
-        cout << "\tslt " << res->GetRegName() << ", " << lhs->GetRegName() << ", " << rhs->GetRegName() << endl;
-        cout << "\tseqz " << res->GetRegName() << ", " << res->GetRegName() << endl;
+    case 8:  // mul
+        std::cout << "\tmul   " << result_name << ", " << left_name << ", " <<
+            right_name << std::endl;
         break;
-    case KOOPA_RBO_LT:
-        cout << "\tslt " << res->GetRegName() << ", " << lhs->GetRegName() << ", " << rhs->GetRegName() << endl;
+    case 9:  // div
+        std::cout << "\tdiv   " << result_name << ", " << left_name << ", " <<
+            right_name << std::endl;
         break;
-    case KOOPA_RBO_GT:
-        cout << "\tsgt " << res->GetRegName() << ", " << lhs->GetRegName() << ", " << rhs->GetRegName() << endl;
+    case 10:  // mod
+        std::cout << "\trem   " << result_name << ", " << left_name << ", " <<
+            right_name << std::endl;
         break;
-    case KOOPA_RBO_AND:
-        cout << "\tand " << res->GetRegName() << ", " << lhs->GetRegName() << ", " << rhs->GetRegName() << endl;
+    case 11:  // and
+        std::cout << "\tand   " << result_name << ", " << left_name << ", " <<
+            right_name << std::endl;
         break;
-    case KOOPA_RBO_OR:
-        cout << "\tor " << res->GetRegName() << ", " << lhs->GetRegName() << ", " << rhs->GetRegName() << endl;
+    case 12:  // or
+        std::cout << "\tor    " << result_name << ", " << left_name << ", " <<
+            right_name << std::endl;
         break;
-
     default:
-        cout << "Unknown op:" << binary.op << endl;
         assert(false);
     }
-    cout << "\tsw " << res->GetRegName() << ", " << stackTop << "(sp)" << endl;
-    ReleaseRegs(lhs);
-    ReleaseRegs(rhs);
-    ReleaseRegs(res);
-    SaveToStack(value);
-    return valueMap[value];
+    return result_var;
 }
 
-Reg *Visit(const koopa_raw_store_t &store, const koopa_raw_value_t &value)
-{
-    auto alloc = store.dest;
-    auto valueReg = Visit(store.value);
-    if (alloc->kind.tag == KOOPA_RVT_GLOBAL_ALLOC)
-    {
-        cout << "\tla t0, " << (alloc->name + 1) << endl;
-        if (valueReg->offset >= 0)
-        {
-            auto tmp = FindReg(store.value);
-            cout << "\tlw " << tmp->GetRegName() << ", " << valueReg->offset << "(sp)" << endl;
-            valueReg = tmp;
-        }
-        cout<<"\tsw "<<valueReg->GetRegName()<<", 0(t0)"<<endl;
-        ReleaseRegs(valueReg);
-        return nullptr;
-    }
-    assert(valueMap.count(alloc));
-    auto allocReg = Visit(alloc);
-    if (valueReg->offset >= 0)
-    {
-        auto tmp = FindReg(store.value);
-        cout << "\tlw " << tmp->GetRegName() << ", " << valueReg->offset << "(sp)" << endl;
-        valueReg = tmp;
-    }
-    cout << "\tsw " << valueReg->GetRegName() << ", " << allocReg->offset << "(sp)" << endl;
-    ReleaseRegs(valueReg);
-    return allocReg;
-}
 
-Reg *Visit(const koopa_raw_load_t &load, const koopa_raw_value_t &value)
+Reg Visit(const koopa_raw_load_t &load)
 {
-    auto alloc = load.src;
-    if (alloc->kind.tag == KOOPA_RVT_GLOBAL_ALLOC)
+    koopa_raw_value_t src = load.src;
+    if (src->kind.tag == KOOPA_RVT_GLOBAL_ALLOC)
     {
-        cout << "\tla s2, " << (alloc->name + 1) << endl;
-        cout << "\tlw s2, 0(s2)" << endl;
-        auto saveReg = SaveToStack(value);
-        cout << "\tsw s2, " << saveReg->offset << "(sp)" << endl;
-        return saveReg;
+        int reg_name = find_reg(1);
+        struct Reg result_var = {reg_name, -1};
+        std::cout << "\tla    " << reg_names[reg_name] << ", " <<
+            global_values[src] << std::endl;
+        std::cout << "\tlw    " << reg_names[reg_name] << ", 0(" <<
+            reg_names[reg_name] << ")" << std::endl;
+        return result_var;
     }
-    auto allocReg = Visit(alloc);
-    if (allocReg->offset >= 0)
-        cout << "\tlw t0"
-             << ", " << allocReg->offset << "(sp)" << endl;
+    else if (src->kind.tag == KOOPA_RVT_GET_ELEM_PTR ||
+        src->kind.tag == KOOPA_RVT_GET_PTR)
+    {
+        struct Reg result_var = {find_reg(2), -1};
+        struct Reg src_var = Visit(load.src);
+        reg_stats[result_var.reg_name] = 1;
+        std::cout << "\tlw    " << reg_names[result_var.reg_name] << ", (" <<
+            reg_names[src_var.reg_name] << ")" << std::endl;
+        return result_var;
+    }
+    // we have to make sure one offset is at most loaded to one register
+    if (value_map[src].reg_name >= 0)return value_map[src];
+    int reg_name = find_reg(1), reg_offset = value_map[src].reg_offset;
+    struct Reg result_var = {reg_name, reg_offset};
+    if (reg_offset >= -2048 && reg_offset <= 2047)
+        std::cout << "\tlw    " << reg_names[reg_name] << ", " << reg_offset <<
+            "(sp)" << std::endl;
     else
-        cout << "Error:Load from Reg whose offset is " << allocReg->offset << endl;
-    auto saveReg = SaveToStack(value);
-    cout << "\tsw t0, " << saveReg->offset << "(sp)" << endl;
-    return saveReg;
-}
-
-Reg *SaveToStack(const koopa_raw_value_t &value)
-{
-    Reg stack(regs.size() + paramRegs.size());
-    stack.offset = stackTop;
-    stackTop += 4;
-    assert(!valueMap.count(value));
-    stack.value = value;
-    regs.push_back(stack);
-    valueMap[value] = &regs[regs.size() - 1];
-    return &regs[regs.size() - 1];
-}
-
-void Visit(const koopa_raw_branch_t &branch, const koopa_raw_value_t &value)
-{
-    auto condition = Visit(branch.cond);
-    if (condition->offset >= 0)
     {
-        auto tmp = FindReg(branch.cond);
-        cout << "\tlw " << tmp->GetRegName() << ", " << condition->offset << "(sp)" << endl;
-        condition = tmp;
+        std::cout << "\tli    s11, " << reg_offset << std::endl;
+        std::cout << "\tadd   s11, s11, sp" << std::endl;
+        std::cout << "\tlw    " << reg_names[reg_name] << ", (s11)" <<
+            std::endl;
     }
-    cout << "\tbnez " << condition->GetRegName() << ", " << (branch.true_bb->name + 1) << endl;
-    cout << "\tj " << (branch.false_bb->name + 1) << endl;
-    ReleaseRegs(condition);
+    return result_var;
 }
 
-void Visit(const koopa_raw_jump_t &jump, const koopa_raw_value_t &value)
+
+void Visit(const koopa_raw_store_t &store)
 {
-    cout << "\tj " << (jump.target->name + 1) << endl;
+    struct Reg value = Visit(store.value);
+    koopa_raw_value_t dest = store.dest;
+    assert(value.reg_name >= 0);
+    if (dest->kind.tag == KOOPA_RVT_GLOBAL_ALLOC)
+    {
+        std::cout << "\tla    s11, " << global_values[dest] << std::endl;
+        std::cout << "\tsw    " << reg_names[value.reg_name] << ", 0(s11)" <<
+            std::endl;
+        return;
+    }
+    else if (dest->kind.tag == KOOPA_RVT_GET_ELEM_PTR ||
+        dest->kind.tag == KOOPA_RVT_GET_PTR)
+    {
+        int old_stat = reg_stats[value.reg_name];
+        reg_stats[value.reg_name] = 2;
+        struct Reg dest_var = Visit(dest);
+        assert(dest_var.reg_name >= 0);
+        reg_stats[value.reg_name] = old_stat;
+        std::cout << "\tsw    " << reg_names[value.reg_name] << ", (" <<
+            reg_names[dest_var.reg_name] << ")" << std::endl;
+        return;
+    }
+    assert(value_map.count(dest));
+    if (value_map[dest].reg_offset == -1)
+    {
+        value_map[dest].reg_offset = stack_top;
+        stack_top += 4;
+    }
+    else  // old register loaded from reg_offset is outdated ...
+        for (int i = 0; i < 16; i++)
+            if (i == value.reg_name)continue;
+            else if (reg_stats[i] > 0 && value_map[registers[i]].reg_offset ==
+                value_map[dest].reg_offset)
+            {
+                reg_stats[i] = 0;  // ... so clear it and update value_map
+                value_map[registers[i]].reg_name = value.reg_name;
+            }
+    int reg_name = value.reg_name, reg_offset = value_map[dest].reg_offset;
+    if (reg_offset >= -2048 && reg_offset <= 2047)
+        std::cout << "\tsw    " << reg_names[reg_name] << ", " << reg_offset <<
+            "(sp)" << std::endl;
+    else
+    {
+        std::cout << "\tli    s11, " << reg_offset << std::endl;
+        std::cout << "\tadd   s11, s11, sp" << std::endl;
+        std::cout << "\tsw    " << reg_names[reg_name] << ", (s11)" <<
+            std::endl;
+    }
 }
 
-Reg *Visit(const koopa_raw_call_t &call, const koopa_raw_value_t &value)
+
+void Visit(const koopa_raw_branch_t &branch)
 {
-    for (int i = 0; i < call.args.len; i++)
+    std::string true_label = branch.true_bb->name + 1;
+    std::string false_label = branch.false_bb->name + 1;
+    int cond_reg = Visit(branch.cond).reg_name;
+    clear_registers(false);
+    std::cout << "\tbnez  " << reg_names[cond_reg] << ", " << true_label
+        << std::endl;
+    std::cout << "\tj     " << false_label << std::endl;
+}
+
+
+void Visit(const koopa_raw_jump_t &jump)
+{
+    clear_registers(false);
+    std::string target_label = jump.target->name + 1;
+    std::cout << "\tj     " << target_label << std::endl;
+}
+
+
+Reg Visit(const koopa_raw_call_t &call)
+{
+    struct Reg result_var = { 7, -1 };
+    clear_registers();
+    std::vector<int> old_stats;
+    for (size_t i = 0; i < call.args.len; i++)
     {
         auto ptr = call.args.buffer[i];
-        koopa_raw_value_t ptrValue = reinterpret_cast<koopa_raw_value_t>(ptr);
-        auto reg = Visit(ptrValue);
+        koopa_raw_value_t arg = reinterpret_cast<koopa_raw_value_t>(ptr);
+        struct Reg arg_var = Visit(arg);
+        assert(arg_var.reg_name >= 0);
         if (i < 8)
         {
-            if (reg->offset == -1)
-                cout << "\tmv " << paramRegNames[i] << ", " << reg->GetRegName() << endl;
-            else
-            {
-                cout << "\tlw t0, " << reg->offset << "(sp)" << endl;
-                cout << "\tmv " << paramRegNames[i] << ", t0" << endl;
-            }
+            if (arg_var.reg_name != i + 7)
+                std::cout << "\tmv    " << reg_names[i + 7] << ", " <<
+                    reg_names[arg_var.reg_name] << std::endl;
+            old_stats.push_back(reg_stats[i + 7]);
+            reg_stats[i + 7] = 2;
         }
+        else if ((i - 8) * 4 >= -2048 && (i - 8) * 4 <= 2047)
+            std::cout << "\tsw    " << reg_names[arg_var.reg_name] << ", " <<
+                (i - 8) * 4 << "(sp)" << std::endl;
         else
         {
-            if (reg->offset == -1)
-                cout << "\tsw " << reg->GetRegName() << ", " << (i - 8) * 4 << "(sp)" << endl;
+            std::cout << "\tli    s11, " << (i - 8) * 4 << std::endl;
+            std::cout << "\tadd   s11, s11, sp" << std::endl;
+            std::cout << "\tsw    " << reg_names[arg_var.reg_name] << ", (s11)"
+                << std::endl;
+        }
+    }
+    for (int i = 0; i < old_stats.size(); i++)reg_stats[i + 7] = old_stats[i];
+    std::cout << "\tcall  " << call.callee->name + 1 << std::endl;
+    clear_registers(false);
+    return result_var;
+}
+
+
+std::string Visit(const koopa_raw_global_alloc_t &global)
+{
+    std::string name = "var_" + std::to_string(global_num++);
+    std::cout << "\t.data" << std::endl;
+    std::cout << "\t.globl " << name << std::endl;
+    std::cout << name << ":" << std::endl;
+    switch (global.init->kind.tag)
+    {
+    case KOOPA_RVT_ZERO_INIT:
+        std::cout << "\t.zero " << cal_size(global.init->ty) << std::endl <<
+            std::endl;
+        break;
+    case KOOPA_RVT_INTEGER:
+        std::cout << "\t.word " << global.init->kind.data.integer.value <<
+            std::endl << std::endl;
+        break;
+    case KOOPA_RVT_AGGREGATE:
+        init_aggregate(global.init);
+        std::cout << std::endl;
+        break;
+    default:
+        assert(false);
+    }
+    return name;
+}
+
+
+Reg Visit(const koopa_raw_get_elem_ptr_t &get_elem_ptr)
+{
+    if (get_elem_ptr.src->kind.tag == KOOPA_RVT_GLOBAL_ALLOC)
+    {
+        assert(global_values.count(get_elem_ptr.src));
+        struct Reg result_var = {find_reg(2), -1};
+        koopa_raw_type_t arr = get_elem_ptr.src->ty->data.pointer.base;
+        int total_size = cal_size(arr), len = arr->data.array.len;
+        assert(total_size % len == 0);
+        int elem_size = total_size / len;
+        struct Reg ind_var = Visit(get_elem_ptr.index);
+        int ind_reg = ind_var.reg_name;
+        reg_stats[result_var.reg_name] = 1;
+        std::cout << "\tla    " << reg_names[result_var.reg_name] << ", " <<
+            global_values[get_elem_ptr.src] << std::endl;
+        std::cout << "\tli    s11, " << elem_size << std::endl;
+        std::cout << "\tmul   s11, s11, " << reg_names[ind_reg] << std::endl;
+        std::cout << "\tadd   " << reg_names[result_var.reg_name] << ", " <<
+            reg_names[result_var.reg_name] << ", s11" << std::endl;
+        return result_var;
+    }
+    struct Reg src_var = value_map[get_elem_ptr.src];
+    koopa_raw_type_t arr = get_elem_ptr.src->ty->data.pointer.base;
+    struct Reg result_var = {find_reg(2), -1};
+    int src_reg, src_old_stat;
+    if (get_elem_ptr.src->name && get_elem_ptr.src->name[0] == '@')
+    {
+        int offset = src_var.reg_offset;
+        assert(offset >= 0);  // variables have positive offset
+        if (offset >= -2048 && offset <= 2047)
+            std::cout << "\taddi  " << reg_names[result_var.reg_name] <<
+                ", sp, " << offset << std::endl;
+        else
+        {
+            std::cout << "\tli    s11, " << offset << std::endl;
+            std::cout << "\tadd   " << reg_names[result_var.reg_name] <<
+                ", sp, s11" << std::endl;
+        }
+    }
+    else
+    {
+        src_var = Visit(get_elem_ptr.src);
+        src_reg = src_var.reg_name;
+        assert(src_reg >= 0);
+        src_old_stat = reg_stats[src_reg];
+        reg_stats[src_reg] = 2;
+    }
+    int total_size = cal_size(arr), len = arr->data.array.len;
+    assert(total_size % len == 0);
+    int elem_size = total_size / len;
+    struct Reg ind_var = Visit(get_elem_ptr.index), tmp_var;
+    if (elem_size != 0 && ind_var.reg_name != 15)
+    {
+        int ind_reg = ind_var.reg_name;
+        int ind_old_stat = reg_stats[ind_reg];
+        reg_stats[ind_reg] = 2;
+        tmp_var = {find_reg(0), -1};
+        reg_stats[ind_reg] = ind_old_stat;
+        std::cout << "\tli    " << reg_names[tmp_var.reg_name] << ", " <<
+            elem_size << std::endl;
+        std::cout << "\tmul   " << reg_names[tmp_var.reg_name] << ", " <<
+            reg_names[tmp_var.reg_name] << ", " << reg_names[ind_reg] <<
+            std::endl;
+    }
+    else tmp_var = {15, -1};
+    reg_stats[result_var.reg_name] = 1;
+    if (get_elem_ptr.src->name && get_elem_ptr.src->name[0] == '@')
+        std::cout << "\tadd   " << reg_names[result_var.reg_name] << ", " <<
+            reg_names[result_var.reg_name] << ", " <<
+            reg_names[tmp_var.reg_name] << std::endl;
+    else
+    {
+        std::cout << "\tadd   " << reg_names[result_var.reg_name] << ", " <<
+            reg_names[src_reg] << ", " << reg_names[tmp_var.reg_name]
+            << std::endl;
+        reg_stats[src_reg] = src_old_stat;
+    }
+    return result_var;
+}
+
+
+Reg Visit(const koopa_raw_get_ptr_t &get_ptr)
+{
+    struct Reg src_var = value_map[get_ptr.src];
+    koopa_raw_type_t arr = get_ptr.src->ty->data.pointer.base;
+    struct Reg result_var = {find_reg(2), -1};
+    int elem_size = cal_size(arr);
+    struct Reg ind_var = Visit(get_ptr.index), tmp_var;
+    if (elem_size != 0 && ind_var.reg_name != 15)
+    {
+        int ind_reg = ind_var.reg_name;
+        int ind_old_stat = reg_stats[ind_reg];
+        reg_stats[ind_reg] = 2;
+        tmp_var = {find_reg(0), -1};
+        reg_stats[ind_reg] = ind_old_stat;
+        std::cout << "\tli    " << reg_names[tmp_var.reg_name] << ", " <<
+            elem_size << std::endl;
+        std::cout << "\tmul   " << reg_names[tmp_var.reg_name] << ", " <<
+            reg_names[tmp_var.reg_name] << ", " << reg_names[ind_reg] <<
+            std::endl;
+    }
+    else tmp_var = {15, -1};
+    reg_stats[result_var.reg_name] = 1;
+    std::cout << "\tadd   " << reg_names[result_var.reg_name] << ", " <<
+        reg_names[src_var.reg_name] << ", " <<
+        reg_names[tmp_var.reg_name] << std::endl;
+    return result_var;
+}
+
+
+int find_reg(int stat)
+{
+    for (int i = 0; i < 15; i++)
+        if (reg_stats[i] == 0)
+        {
+            registers[i] = present_value;
+            reg_stats[i] = stat;
+            return i;
+        }
+    for (int i = 0; i < 15; i++)
+    {
+        if (reg_stats[i] == 1)
+        {
+            value_map[registers[i]].reg_name = -1;
+            int offset = value_map[registers[i]].reg_offset;
+            if (offset == -1)
+            {
+                offset = stack_top;
+                stack_top += 4;
+                value_map[registers[i]].reg_offset = offset;
+            }
+            if (offset >= -2048 && offset <= 2047)
+                std::cout << "\tsw    " << reg_names[i] << ", " << offset <<
+                    "(sp)" << std::endl;
             else
             {
-                cout << "\tlw t0, " << reg->offset << "(sp)" << endl;
-                cout << "\tsw t0, " << (i - 8) * 4 << "(sp)" << endl;
+                std::cout << "\tli    s11, " << offset << std::endl;
+                std::cout << "\tadd   s11, s11, sp" << std::endl;
+                std::cout << "\tsw    " << reg_names[i] << ", (s11)" <<
+                    std::endl;
             }
+            registers[i] = present_value;
+            reg_stats[i] = stat;
+            return i;
         }
-        ReleaseRegs(reg);
     }
-    cout << "\tcall " << call.callee->name + 1 << endl;
-    if (value->ty->tag != KOOPA_RTT_UNIT)
-    {
-        Reg ret;
-        ret.offset = stackTop;
-        tmpRegs.push_back(ret);
-
-        cout << "\tsw a0, " << stackTop << "(sp)" << endl;
-        stackTop += 4;
-        valueMap[value] = &(tmpRegs[tmpRegs.size() - 1]);
-        return &(tmpRegs[tmpRegs.size() - 1]);
-    }
-    else
-        return nullptr;
-}
-void Visit(const koopa_raw_global_alloc_t &globalAlloc, const koopa_raw_value_t &value)
-{
-    cout << "\t.data" << endl;
-    cout << "\t.global " << (value->name + 1) << endl;
-    cout << (value->name + 1) << ":" << endl;
-    auto init = Visit(globalAlloc.init);
-    if (init == nullptr)
-    {
-        cout << "\t.zero 4" << endl;
-    }
-    else
-    {
-        cout << "\t.word " << init->offset << endl;
-    }
-}
-
-Reg *FindReg(const koopa_raw_value_t &value)
-{
-    if (!valueMap.count(value))
-        for (int i = 0; i < regNames.size(); i++)
-        {
-            if (regs[i].stats == 0)
-            {
-                regs[i].stats = 1;
-                valueMap[value] = &(regs[i]);
-                regs[i].value = value;
-                return &(regs[i]);
-            }
-        }
-    else // 为处于栈中的数据找一个临时寄存器
-        for (int i = 0; i < regNames.size(); i++)
-        {
-            if (regs[i].stats == 0)
-            {
-                regs[i].stats = 1;
-                regs[i].value = value;
-                return &(regs[i]);
-            }
-        }
     assert(false);
+    return -1;
 }
 
-void InitRegs()
+
+void clear_registers(bool save_temps)
 {
-    init = true;
-    for (int i = 0; i < regNames.size(); i++)
-    {
-        Reg reg(i);
-        reg.stats = 0;
-        reg.type = ERISVSave::Reg;
-        regs.push_back(reg);
-    }
-    for (int i = 0; i < paramRegNames.size(); i++)
-    {
-        Reg reg(i + regNames.size());
-        reg.stats = 0;
-        reg.type = ERISVSave::Reg;
-        paramRegs.push_back(reg);
-    }
+    for (int i = 0; i < 15; i++)
+        if (reg_stats[i] > 0)
+        {
+            value_map[registers[i]].reg_name = -1;
+            int offset = value_map[registers[i]].reg_offset;
+            if (offset == -1)
+            {
+                offset = stack_top;
+                stack_top += 4;
+                value_map[registers[i]].reg_offset = offset;
+                if (save_temps)
+                {
+                    if (offset >= -2048 && offset <= 2047)
+                        std::cout << "\tsw    " << reg_names[i] << ", " <<
+                            offset << "(sp)" << std::endl;
+                    else
+                    {
+                        std::cout << "\tli    s11, " << offset << std::endl;
+                        std::cout << "\tadd   s11, s11, sp" << std::endl;
+                        std::cout << "\tsw    " << reg_names[i] << ", (s11)" <<
+                            std::endl;
+                    }
+                }
+            }
+            reg_stats[i] = 0;
+        }
 }
 
-void ReleaseRegs(Reg *reg)
+
+int cal_size(const koopa_raw_type_t &ty)
 {
-    if (reg->GetReg() < 0 || reg->GetReg() >= regs.size())
-        return;
-    regs[reg->GetReg()].stats = 0;
-    if (regs[reg->GetReg()].offset == -1)
-        valueMap.erase(regs[reg->GetReg()].value);
+    assert(ty->tag != KOOPA_RTT_UNIT);
+    if (ty->tag == KOOPA_RTT_ARRAY)
+    {
+        int prev = cal_size(ty->data.array.base);
+        int len = ty->data.array.len;
+        return len * prev;
+    }
+    return 4;
+}
+
+
+void init_aggregate(const koopa_raw_value_t &aggr)
+{
+    koopa_raw_slice_t elems = aggr->kind.data.aggregate.elems;
+    for (size_t i = 0; i < elems.len; i++)
+    {
+        auto ptr = elems.buffer[i];
+        assert(elems.kind == KOOPA_RSIK_VALUE);
+        auto value = reinterpret_cast<koopa_raw_value_t>(ptr);
+        if (value->kind.tag == KOOPA_RVT_INTEGER)
+            std::cout << "\t.word " << value->kind.data.integer.value <<
+                std::endl;
+        else if (value->kind.tag == KOOPA_RVT_AGGREGATE)
+            init_aggregate(value);
+        else assert(false);
+    }
 }

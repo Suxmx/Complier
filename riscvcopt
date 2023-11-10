@@ -1,0 +1,436 @@
+	.data
+	.global arr_1
+arr_1:
+	.zero 262144
+
+	.text
+	.global main
+main:
+	addi sp, sp, -208
+	li t1, 0
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 4(sp)
+	li t1, 1
+	sw t1, 4(sp)
+	li t1, 1
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 8(sp)
+	li t1, 0
+	sw t1, 8(sp)
+	li t1, 2
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 12(sp)
+	li t1, 0
+	sw t1, 12(sp)
+	li t1, 3
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 16(sp)
+	li t1, 0
+	sw t1, 16(sp)
+	li t1, 4
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 20(sp)
+	li t1, 0
+	sw t1, 20(sp)
+	li t1, 5
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 24(sp)
+	li t1, 0
+	sw t1, 24(sp)
+	li t1, 6
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 28(sp)
+	li t1, 0
+	sw t1, 28(sp)
+	li t1, 7
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 32(sp)
+	li t1, 0
+	sw t1, 32(sp)
+	li t1, 8
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 36(sp)
+	li t1, 0
+	sw t1, 36(sp)
+	li t1, 9
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 40(sp)
+	li t1, 0
+	sw t1, 40(sp)
+	li t1, 10
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 44(sp)
+	li t1, 0
+	sw t1, 44(sp)
+	li t1, 11
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 48(sp)
+	li t1, 0
+	sw t1, 48(sp)
+	li t1, 12
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 52(sp)
+	li t1, 0
+	sw t1, 52(sp)
+	li t1, 13
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 56(sp)
+	li t1, 0
+	sw t1, 56(sp)
+	li t1, 14
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 60(sp)
+	li t1, 0
+	sw t1, 60(sp)
+	li t1, 15
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 64(sp)
+	li t1, 0
+	sw t1, 64(sp)
+	li t1, 16
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 68(sp)
+	li t1, 0
+	sw t1, 68(sp)
+	li t1, 17
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 72(sp)
+	li t1, 0
+	sw t1, 72(sp)
+	li t1, 18
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 76(sp)
+	li t1, 0
+	sw t1, 76(sp)
+	li t1, 19
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 80(sp)
+	li t1, 0
+	sw t1, 80(sp)
+	li t1, 20
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 84(sp)
+	li t1, 0
+	sw t1, 84(sp)
+	li t1, 21
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 88(sp)
+	li t1, 0
+	sw t1, 88(sp)
+	li t1, 22
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 92(sp)
+	li t1, 0
+	sw t1, 92(sp)
+	li t1, 23
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 96(sp)
+	li t1, 0
+	sw t1, 96(sp)
+	li t1, 24
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 100(sp)
+	li t1, 0
+	sw t1, 100(sp)
+	li t1, 25
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 104(sp)
+	li t1, 0
+	sw t1, 104(sp)
+	li t1, 26
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 108(sp)
+	li t1, 0
+	sw t1, 108(sp)
+	li t1, 27
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 112(sp)
+	li t1, 0
+	sw t1, 112(sp)
+	li t1, 28
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 116(sp)
+	li t1, 0
+	sw t1, 116(sp)
+	li t1, 29
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 120(sp)
+	li t1, 0
+	sw t1, 120(sp)
+	li t1, 30
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 124(sp)
+	li t1, 0
+	sw t1, 124(sp)
+	li t1, 31
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 128(sp)
+	li t1, 0
+	sw t1, 128(sp)
+	li t1, 32
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 132(sp)
+	li t1, 0
+	sw t1, 132(sp)
+	li t1, 33
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 136(sp)
+	li t1, 0
+	sw t1, 136(sp)
+	li t1, 34
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 140(sp)
+	li t1, 0
+	sw t1, 140(sp)
+	li t1, 35
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 144(sp)
+	li t1, 0
+	sw t1, 144(sp)
+	li t1, 36
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 148(sp)
+	li t1, 0
+	sw t1, 148(sp)
+	li t1, 37
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 152(sp)
+	li t1, 0
+	sw t1, 152(sp)
+	li t1, 38
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 156(sp)
+	li t1, 0
+	sw t1, 156(sp)
+	li t1, 39
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 160(sp)
+	li t1, 0
+	sw t1, 160(sp)
+	li t1, 40
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 164(sp)
+	li t1, 0
+	sw t1, 164(sp)
+	li t1, 41
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 168(sp)
+	li t1, 0
+	sw t1, 168(sp)
+	li t1, 42
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 172(sp)
+	li t1, 0
+	sw t1, 172(sp)
+	li t1, 43
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 176(sp)
+	li t1, 0
+	sw t1, 176(sp)
+	li t1, 44
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 180(sp)
+	li t1, 0
+	sw t1, 180(sp)
+	li t1, 45
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 184(sp)
+	li t1, 0
+	sw t1, 184(sp)
+	li t1, 0
+	addi s3, sp, 0
+	li s4, 4
+	mul s4, t1, s4
+	add s3, s3, s4
+	lw s3,(s3)
+	sw s3, 188(sp)
+	lw t0, 188(sp)
+	sw t0, 192(sp)
+	lw a0, 192(sp)
+	addi sp, sp, 208
+	ret
+
