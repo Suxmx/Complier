@@ -13,6 +13,30 @@ void CompUnitAST::Dump() const
 }
 string CompUnitAST::DumpIR() const
 {
+    cout << "decl @getint(): i32\ndecl @getch() : i32\ndecl @getarray(*i32) : i32\n";
+    cout << "decl @putint(i32)\ndecl @putch(i32)\ndecl @putarray(i32, *i32)\ndecl @starttime()\ndecl @stoptime()" << endl;
+    DeclData data;
+    data.type = EDecl::Func;
+    data.bType = EBType::Int;
+
+    data.ident = "getint";
+    symbolManager.AddSymbol("getint", data);
+    data.ident = "getch";
+    symbolManager.AddSymbol("getch", data);
+    data.ident = "getarray";
+    symbolManager.AddSymbol("getarray", data);
+
+    data.bType = EBType::Void;
+    data.ident = "putch";
+    symbolManager.AddSymbol("putch", data);
+    data.ident = "putint";
+    symbolManager.AddSymbol("putint", data);
+    data.ident = "putarray";
+    symbolManager.AddSymbol("putarray", data);
+    data.ident = "starttime";
+    symbolManager.AddSymbol("starttime", data);
+    data.ident = "stoptime";
+    symbolManager.AddSymbol("stoptime", data);
     for (const auto &def : *funcDefs)
     {
         def->DumpIR();
@@ -104,7 +128,6 @@ string FuncFParamAST::GetIdent() const
 }
 void FuncRParamAST::Dump() const
 {
-
 }
 string FuncRParamAST::DumpIR() const
 {
@@ -384,7 +407,7 @@ string UnaryExpAST::DumpIR() const
 
         if (data.bType == EBType::Int)
         {
-            
+
             string res = "%" + to_string(expNum++);
             cout << "\t" << res << " = call @" << data.ident << "(";
             for (int i = 0; i < params.size(); i++)
@@ -400,7 +423,7 @@ string UnaryExpAST::DumpIR() const
         {
             cout << "\tcall @" << data.ident << "(";
             // cout<<params.size();
-            for (int i = 0; !params.empty()&&i < params.size(); i++)
+            for (int i = 0; !params.empty() && i < params.size(); i++)
             {
                 cout << params[i];
                 if (i != params.size() - 1)
@@ -424,7 +447,7 @@ int UnaryExpAST::CalcExp()
         else if (op == '!')
             return !unaryExp->CalcExp();
     }
-    
+
     return 0;
 }
 
