@@ -49,7 +49,7 @@ using namespace std;
 %type <ast_val> Decl ConstDecl ConstDef InitVal BlockItem  VarDecl VarDef FuncFParam FuncRParam Unit
 %type <int_val> Number AddOp MulOp RelOp EqOp LAndOp LOrOp BType FuncType
 %type <str_val> UnaryOp LVal
-%type <vec_val> BlockItemList ConstDefList VarDefList CompUnitList FuncFParamList FuncRParamList
+%type <vec_val> BlockItemList ConstDefList VarDefList CompUnitList FuncFParamList FuncRParamList ArraySymbols InitValList
 %%
 
 // 开始符, CompUnit ::= FuncDef, 大括号后声明了解析完成后 parser 要做的事情
@@ -141,7 +141,24 @@ ConstDef
     def->initVal = unique_ptr<BaseAST>($3);
     
     $$ = def;
-  };
+  }
+  |IDENT ArraySymbols '=' InitVal
+  {
+    auto def = new ConstDefAST();
+    def->ident = (*unique_ptr<string>($1));
+    def->arraySymbols = unique_ptr<vector<unique_ptr<BaseAST>>>($2);
+    def->initVal = unique_ptr<BaseAST>($4);
+    
+    $$ = def;
+  }
+  ;
+ArraySymbols
+  :'[' Exp ']'
+  {
+    auto list = new vector<unique_ptr<BaseAST>>();
+    list->push_back(unique_ptr<BaseAST>($2));
+    $$ = list;
+  }
 VarDecl 
   :BType VarDefList ';'
   {
@@ -162,7 +179,7 @@ VarDefList
     auto list = $1;
     list->push_back(unique_ptr<BaseAST>($3));
     $$ = list;
-  }
+  };
 VarDef
   :IDENT
   {
@@ -177,13 +194,60 @@ VarDef
     def->initVal = unique_ptr<BaseAST>($3);
     $$ = def;
   }
+  |IDENT ArraySymbols
+  {
+    auto def = new VarDefAST();
+    def->ident = (*unique_ptr<string>($1));
+    def->arraySymbols = unique_ptr<vector<unique_ptr<BaseAST>>>($2);    
+    $$ = def;
+  }
+  |IDENT ArraySymbols '=' InitVal
+  {
+    auto def = new VarDefAST();
+    def->ident = (*unique_ptr<string>($1));
+    def->arraySymbols = unique_ptr<vector<unique_ptr<BaseAST>>>($2);
+    def->initVal = unique_ptr<BaseAST>($4);
+    
+    $$ = def;
+  }
+  
 InitVal
   :Exp
   {
     auto init= new InitValAST();
+    init->type = EInitVal::Exp;
     init->exp = unique_ptr<BaseAST>($1);
     $$ = init;
-  };
+  }
+  |'{' '}'
+  {
+    auto init= new InitValAST();
+    auto list = new vector<unique_ptr<BaseAST>>();
+    init->type = EInitVal::List;
+    init->list = unique_ptr<vector<unique_ptr<BaseAST>>>(list);
+    $$ = init; 
+  }
+  |'{' InitValList '}'
+  {
+    auto init= new InitValAST();
+    init->type = EInitVal::List;
+    init->list = unique_ptr<vector<unique_ptr<BaseAST>>>($2);
+    $$ = init; 
+  }
+  ;
+InitValList
+  :InitVal
+  {
+    auto list = new vector<unique_ptr<BaseAST>>();
+    list->push_back(unique_ptr<BaseAST>($1));
+    $$ = list;
+  }
+  |InitValList ',' InitVal
+  {
+    auto list = $1;
+    list->push_back(unique_ptr<BaseAST>($3));
+    $$ = list;
+  }
 
   
 FuncDef
@@ -285,6 +349,16 @@ Stmt
     stmt->lval = (*unique_ptr<string>($1));
     $$ = stmt;
   }
+  |IDENT ArraySymbols '=' Exp
+  {
+    auto stmt=new StmtAST();
+    stmt->type = EStmt::Array;
+    stmt->lval = (*unique_ptr<string>($1));
+    stmt->arraySymbols =  unique_ptr<vector<unique_ptr<BaseAST>>>($2);
+    stmt->exp = unique_ptr<BaseAST>($4);
+    
+    $$ = stmt;
+  }
   | Exp ';'
   {
     auto stmt=new StmtAST();
@@ -295,7 +369,7 @@ Stmt
   | ';'
   {
     auto stmt=new StmtAST();
-    stmt->type = EStmt::Exp;
+    stmt->type = EStmt::Empty;
     $$ = stmt;
   }
   | Block 
@@ -367,7 +441,7 @@ LVal
   :IDENT
   {
     $$ = $1;
-  }   
+  };
 UnaryExp
   : PrimaryExp
   {
@@ -454,6 +528,14 @@ PrimaryExp
     primaryExp->type = EPrimaryExp::LVal;
     primaryExp->lval = (*unique_ptr<string>($1));
     $$ = primaryExp; 
+  }
+  |IDENT ArraySymbols
+  {
+    auto primaryExp = new PrimaryExpAST();
+    primaryExp->type = EPrimaryExp::Array;
+    primaryExp->lval = (*unique_ptr<string>($1));
+    primaryExp->arraySymbols = unique_ptr<vector<unique_ptr<BaseAST>>>($2);
+    $$ = primaryExp;
   }
   ;
 AddOp

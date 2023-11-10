@@ -23,10 +23,15 @@ public:
     virtual ~BaseAST() = default;
     virtual void Dump() const = 0;
     virtual string DumpIR() const = 0;
-    virtual string DumpIRGlobal(){return "";}
+    virtual string DumpIRGlobal() { return ""; }
     virtual int CalcExp() { return 0; }
     virtual int GetType() const { return 0; }
     virtual string GetIdent() const { return ""; }
+    virtual vector<int> GetList()
+    {
+        vector<int> tmp;
+        return tmp;
+    };
 };
 
 class CompUnitAST : public BaseAST
@@ -69,6 +74,7 @@ public:
     unique_ptr<BaseAST> ifStmt;
     unique_ptr<BaseAST> elseStmt;
     unique_ptr<BaseAST> whileStmt;
+    unique_ptr<vector<unique_ptr<BaseAST>>> arraySymbols;
     string lval;
     void Dump() const override;
     string DumpIR() const override;
@@ -82,6 +88,7 @@ public:
     void Dump() const override;
     string DumpIR() const override;
     int CalcExp() override;
+    int GetType() const override;
 };
 class PrimaryExpAST : public BaseAST
 {
@@ -90,6 +97,7 @@ public:
     EPrimaryExp type;
     int num;
     string lval;
+    unique_ptr<vector<unique_ptr<BaseAST>>> arraySymbols;
     void Dump() const override;
     string DumpIR() const override;
     int CalcExp() override;
@@ -205,6 +213,7 @@ class ConstDefAST : public BaseAST
 public:
     string ident;
     unique_ptr<BaseAST> initVal;
+    unique_ptr<vector<unique_ptr<BaseAST>>> arraySymbols;
     void Dump() const override;
     string DumpIR() const override;
     string DumpIRGlobal() override;
@@ -213,9 +222,13 @@ class InitValAST : public BaseAST
 {
 public:
     unique_ptr<BaseAST> exp;
+    unique_ptr<vector<unique_ptr<BaseAST>>> list;
+    EInitVal type;
     void Dump() const override;
     string DumpIR() const override;
     int CalcExp() override;
+    vector<int> GetList() override;
+    int GetType() const override;
 };
 class ConstExpAST : public BaseAST
 {
@@ -247,6 +260,7 @@ class VarDefAST : public BaseAST
 public:
     string ident;
     unique_ptr<BaseAST> initVal;
+    unique_ptr<vector<unique_ptr<BaseAST>>> arraySymbols;
     void Dump() const override;
     string DumpIR() const override;
     string DumpIRGlobal() override;
@@ -259,7 +273,7 @@ public:
     void Dump() const override;
     string DumpIR() const override;
     int GetType() const override;
-    string GetIdent()const override;
+    string GetIdent() const override;
 };
 class FuncRParamAST : public BaseAST
 {

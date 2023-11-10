@@ -15,7 +15,8 @@ enum class EPrimaryExp
 {
     Exp,
     Number,
-    LVal
+    LVal,
+    Array
 };
 enum class EAddExp
 {
@@ -73,7 +74,9 @@ enum class EDecl
 {
     ConstDecl,
     Variable,
-    Func
+    Func,
+    ConstArray,
+    VarArray
 };
 enum class EBType
 {
@@ -95,12 +98,20 @@ enum class EStmt
     IfElse,
     While,
     Break,
-    Continue
+    Continue,
+    Array,
+    Empty
 };
+
 enum class ERISVSave
 {
     Reg,
     Stack
+};
+enum class EInitVal
+{
+    Exp,
+    List
 };
 inline string PrintOp(EOp op)
 {

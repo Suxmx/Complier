@@ -90,8 +90,8 @@ string FuncDefAST::DumpIR() const
             tmp.ident = param->GetIdent();
             tmp.type = EDecl::Variable;
             tmp = symbolManager.AddSymbol(tmp.ident, tmp);
-            cout << "\t\@" << tmp.globalIdent << " = alloc i32" << endl;
-            cout << "\tstore @" << tmp.ident << ", \@" << tmp.globalIdent << endl;
+            cout << "\t@" << tmp.globalIdent << " = alloc i32" << endl;
+            cout << "\tstore @" << tmp.ident << ", @" << tmp.globalIdent << endl;
         }
     block->DumpIR();
     if (funcType == EBType::Void)
@@ -207,6 +207,10 @@ string StmtAST::DumpIR() const
     {
         return block->DumpIR();
     }
+    else if (type == EStmt::Empty)
+    {
+        return "";
+    }
     else if (type == EStmt::Exp)
     {
         return exp->DumpIR();
@@ -277,6 +281,15 @@ string StmtAST::DumpIR() const
         cout << "\tjump \%while_entry_" << num << endl;
         return "continue";
     }
+    else if (type == EStmt::Array)
+    {
+        auto data = symbolManager.FindSymbol(lval);
+        string res = exp->DumpIR();
+        string ptr = "%" + to_string(expNum++);
+        cout << "\t" << ptr << " = getelemptr @" << data.globalIdent << ", " << (*arraySymbols)[0]->CalcExp() << endl;
+
+        cout << "\tstore " << res << ", " << ptr << endl;
+    }
     return "";
 }
 int StmtAST::CalcExp()
@@ -297,6 +310,10 @@ string ExpAST::DumpIR() const
 int ExpAST::CalcExp()
 {
     return unaryExp->CalcExp();
+}
+int ExpAST::GetType() const
+{
+    return (int)EInitVal::Exp;
 }
 
 void PrimaryExpAST::Dump() const
@@ -341,6 +358,15 @@ string PrimaryExpAST::DumpIR() const
             cout << "\t" << res << " = load @" << data.globalIdent << endl;
             return res;
         }
+    }
+    else if (type == EPrimaryExp::Array)
+    {
+        auto data = symbolManager.FindSymbol(lval);
+        string tmp = "%" + to_string(expNum++);
+        cout << "\t" << tmp << " = getelemptr @" << data.globalIdent << ", " << (*arraySymbols)[0]->CalcExp() << endl;
+        string res = "%" + to_string(expNum++);
+        cout << "\t" << res << " = load " << tmp << endl;
+        return res;
     }
     return "";
 }
@@ -873,21 +899,86 @@ void ConstDefAST::Dump() const
 }
 string ConstDefAST::DumpIR() const
 {
-    DeclData data{EDecl::ConstDecl, ident, (initVal->CalcExp())};
-    symbolManager.AddSymbol(ident, data);
+    if (!arraySymbols)
+    {
+        DeclData data{EDecl::ConstDecl, ident, (initVal->CalcExp())};
+        symbolManager.AddSymbol(ident, data);
+        return "";
+    }
+    DeclData data{EDecl::ConstArray, ident};
+    data = symbolManager.AddSymbol(ident, data);
+    cout << "\t@" << data.globalIdent << " = alloc ";
+    for (int i = arraySymbols->size() - 1; i >= 0; i--)
+    {
+        cout << "[";
+    }
+    cout << "i32, ";
+    for (int i = arraySymbols->size() - 1; i >= 0; i--)
+    {
+        if (i != 0)
+            cout << (*arraySymbols)[i]->CalcExp() << "], ";
+        else
+            cout << (*arraySymbols)[i]->CalcExp() << "]";
+    }
+    cout << endl;
+    // 以下暂时只能处理一维
+    int size = (*arraySymbols)[0]->CalcExp(); // 获取数组大小
+    auto initList = initVal->GetList();
+    for (int i = 0; i < size; i++)
+    {
+        cout << "\t%" << expNum << " = getelemptr @" << data.globalIdent << ", " << i << endl;
+        cout << "\tstore ";
+        if (i <= initList.size() - 1)
+            cout << initList[i];
+        else
+            cout << "0";
+        cout << ", %" << expNum++;
+        cout << endl;
+    }
     return "";
 }
 string ConstDefAST::DumpIRGlobal()
 {
-    DeclData data{EDecl::ConstDecl, ident, (initVal->CalcExp())};
-    symbolManager.AddSymbol(ident, data);
+    if (!arraySymbols)
+    {
+        DeclData data{EDecl::ConstDecl, ident, (initVal->CalcExp())};
+        symbolManager.AddSymbol(ident, data);
+        return "";
+    }
+    DeclData data{EDecl::ConstArray, ident};
+    data = symbolManager.AddSymbol(ident, data);
+    cout << "global @" << data.globalIdent << " = alloc ";
+    for (int i = arraySymbols->size() - 1; i >= 0; i--)
+    {
+        cout << "[";
+    }
+    cout << "i32, ";
+    for (int i = arraySymbols->size() - 1; i >= 0; i--)
+    {
+        if (i != 0)
+            cout << (*arraySymbols)[i]->CalcExp() << "], ";
+        else
+            cout << (*arraySymbols)[i]->CalcExp() << "]";
+    }
+    cout << ", {";
+    int size = (*arraySymbols)[0]->CalcExp(); // 获取数组大小
+    auto initList = initVal->GetList();
+    for (int i = 0; i < size; i++)
+    {
+        if (i <= initList.size() - 1)
+            cout << initList[i];
+        else
+            cout << "0";
+        if (i < size - 1)
+            cout << ", ";
+    }
+    cout << "}" << endl;
     return "";
 }
 
 void InitValAST::Dump() const
 {
     cout << "InitValAST { " << exp->CalcExp();
-    ;
     cout << " } " << endl;
 }
 string InitValAST::DumpIR() const
@@ -898,6 +989,20 @@ string InitValAST::DumpIR() const
 int InitValAST::CalcExp()
 {
     return exp->CalcExp();
+}
+int InitValAST::GetType() const
+{
+    return (int)(type);
+}
+vector<int> InitValAST::GetList()
+{
+    vector<int> tmp;
+    for (const auto &init : *list)
+    {
+        tmp.push_back(init->CalcExp());
+    }
+
+    return tmp;
 }
 
 void ConstExpAST::Dump() const
@@ -962,23 +1067,96 @@ void VarDefAST::Dump() const
 }
 string VarDefAST::DumpIR() const
 {
-    string value = "0";
-    if (initVal)
-        value = initVal->DumpIR();
-    auto data = DeclData{EDecl::Variable, ident, 0, value};
+    if (!arraySymbols)
+    {
+        string value = "0";
+        if (initVal)
+            value = initVal->DumpIR();
+        auto data = DeclData{EDecl::Variable, ident, 0, value};
+        data = symbolManager.AddSymbol(ident, data);
+        cout << "\t@" << data.globalIdent << " = alloc i32" << endl;
+        cout << "\tstore " << value << ", @" << data.globalIdent << endl;
+        return "";
+    }
+    DeclData data{EDecl::VarArray, ident};
     data = symbolManager.AddSymbol(ident, data);
-    cout << "\t@" << data.globalIdent << " = alloc i32" << endl;
-    cout << "\tstore " << value << ", @" << data.globalIdent << endl;
+    cout << "\t@" << data.globalIdent << " = alloc ";
+    for (int i = arraySymbols->size() - 1; i >= 0; i--)
+    {
+        cout << "[";
+    }
+    cout << "i32, ";
+    for (int i = arraySymbols->size() - 1; i >= 0; i--)
+    {
+        if (i != 0)
+            cout << (*arraySymbols)[i]->CalcExp() << "], ";
+        else
+            cout << (*arraySymbols)[i]->CalcExp() << "]";
+    }
+    cout << endl;
+    if (!initVal)
+        return "";
+    // 以下暂时只能处理一维
+    int size = (*arraySymbols)[0]->CalcExp(); // 获取数组大小
+    auto initList = initVal->GetList();
+    for (int i = 0; i < size; i++)
+    {
+        cout << "\t%" << expNum << " = getelemptr @" << data.globalIdent << ", " << i << endl;
+        cout << "\tstore ";
+        if (i <= initList.size() - 1)
+            cout << initList[i];
+        else
+            cout << "0";
+        cout << ", %" << expNum++;
+        cout << endl;
+    }
     return "";
 }
 string VarDefAST::DumpIRGlobal()
 {
-    DeclData data{EDecl::Variable, ident};
+    if (!arraySymbols)
+    {
+        DeclData data{EDecl::Variable, ident};
+        data = symbolManager.AddSymbol(ident, data);
+        cout << "global @" << data.globalIdent << " = alloc i32, ";
+        if (initVal)
+            cout << initVal->CalcExp() << endl;
+        else
+            cout << "zeroinit" << endl;
+        return "";
+    }
+    DeclData data{EDecl::VarArray, ident};
     data = symbolManager.AddSymbol(ident, data);
-    cout << "global @" << data.globalIdent << " = alloc i32, ";
-    if (initVal)
-        cout << initVal->CalcExp() << endl;
-    else
-        cout << "zeroinit" << endl;
+    cout << "global @" << data.globalIdent << " = alloc ";
+    for (int i = arraySymbols->size() - 1; i >= 0; i--)
+    {
+        cout << "[";
+    }
+    cout << "i32, ";
+    for (int i = arraySymbols->size() - 1; i >= 0; i--)
+    {
+        if (i != 0)
+            cout << (*arraySymbols)[i]->CalcExp() << "], ";
+        else
+            cout << (*arraySymbols)[i]->CalcExp() << "]";
+    }
+    if (!initVal)
+    {
+        cout << ", zeroinit" << endl;
+        return "";
+    }
+    cout << ", {";
+    int size = (*arraySymbols)[0]->CalcExp(); // 获取数组大小
+    auto initList = initVal->GetList();
+    for (int i = 0; i < size; i++)
+    {
+        if (i <= initList.size() - 1)
+            cout << initList[i];
+        else
+            cout << "0";
+        if (i < size - 1)
+            cout << ", ";
+    }
+    cout << "}" << endl;
     return "";
 }
