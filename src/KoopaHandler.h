@@ -67,6 +67,7 @@ public:
 };
 
 bool init = false;
+bool infunc = false;
 bool needSaveRa;
 int stackTop = 0;
 int stackSize = 0;
@@ -99,6 +100,8 @@ void Visit(const koopa_raw_branch_t &branch, const koopa_raw_value_t &value);
 
 void Visit(const koopa_raw_jump_t &jump, const koopa_raw_value_t &value);
 
+void Visit(const koopa_raw_global_alloc_t &globalAlloc, const koopa_raw_value_t &value);
+
 Reg *Visit(const koopa_raw_call_t &call, const koopa_raw_value_t &value);
 
 Reg *FindReg(const koopa_raw_value_t &value);
@@ -114,6 +117,7 @@ void Visit(const koopa_raw_program_t &program)
     if (!init)
         InitRegs();
     Visit(program.values);
+    infunc = true;
     Visit(program.funcs);
 }
 
@@ -284,7 +288,12 @@ Reg *Visit(const koopa_raw_value_t &value)
         return Visit(value->kind.data.call, value);
 
         break;
-
+    case KOOPA_RVT_GLOBAL_ALLOC:
+        Visit(value->kind.data.global_alloc, value);
+        break;
+    case KOOPA_RVT_ZERO_INIT:
+        return nullptr;
+        break;
     default:
         cout << value->kind.tag;
         return nullptr;
@@ -305,9 +314,10 @@ void Visit(const koopa_raw_return_t &ret)
         }
         else
             cout << "\tmv a0," << res->GetRegName() << endl;
-        if (needSaveRa)
-            cout << "\tlw ra, " << stackSize - 4 << "(sp)" << endl;
+        
     }
+    if (needSaveRa)
+            cout << "\tlw ra, " << stackSize - 4 << "(sp)" << endl;
     if (stackSize > 0)
         cout << "\taddi sp, sp, " << stackSize << endl;
     cout << "\tret" << endl;
@@ -316,8 +326,19 @@ void Visit(const koopa_raw_return_t &ret)
 
 Reg *Visit(const koopa_raw_integer_t &integer, const koopa_raw_value_t &value)
 {
-    Reg *res = FindReg(value);
-    cout << "\tli " << res->GetRegName() << ", " << integer.value << endl;
+    Reg *res;
+    if (infunc)
+    {
+        res = FindReg(value);
+        cout << "\tli " << res->GetRegName() << ", " << integer.value << endl;
+    }
+    else
+    {
+        Reg tmp;
+        tmp.offset = integer.value;
+        tmpRegs.push_back(tmp);
+        res = &(tmpRegs[tmpRegs.size() - 1]);
+    }
     return res;
 }
 
@@ -400,6 +421,19 @@ Reg *Visit(const koopa_raw_store_t &store, const koopa_raw_value_t &value)
 {
     auto alloc = store.dest;
     auto valueReg = Visit(store.value);
+    if (alloc->kind.tag == KOOPA_RVT_GLOBAL_ALLOC)
+    {
+        cout << "\tla t0, " << (alloc->name + 1) << endl;
+        if (valueReg->offset >= 0)
+        {
+            auto tmp = FindReg(store.value);
+            cout << "\tlw " << tmp->GetRegName() << ", " << valueReg->offset << "(sp)" << endl;
+            valueReg = tmp;
+        }
+        cout<<"\tsw "<<valueReg->GetRegName()<<", 0(t0)"<<endl;
+        ReleaseRegs(valueReg);
+        return nullptr;
+    }
     assert(valueMap.count(alloc));
     auto allocReg = Visit(alloc);
     if (valueReg->offset >= 0)
@@ -416,6 +450,14 @@ Reg *Visit(const koopa_raw_store_t &store, const koopa_raw_value_t &value)
 Reg *Visit(const koopa_raw_load_t &load, const koopa_raw_value_t &value)
 {
     auto alloc = load.src;
+    if (alloc->kind.tag == KOOPA_RVT_GLOBAL_ALLOC)
+    {
+        cout << "\tla s2, " << (alloc->name + 1) << endl;
+        cout << "\tlw s2, 0(s2)" << endl;
+        auto saveReg = SaveToStack(value);
+        cout << "\tsw s2, " << saveReg->offset << "(sp)" << endl;
+        return saveReg;
+    }
     auto allocReg = Visit(alloc);
     if (allocReg->offset >= 0)
         cout << "\tlw t0"
@@ -499,7 +541,23 @@ Reg *Visit(const koopa_raw_call_t &call, const koopa_raw_value_t &value)
         valueMap[value] = &(tmpRegs[tmpRegs.size() - 1]);
         return &(tmpRegs[tmpRegs.size() - 1]);
     }
-    else return nullptr;
+    else
+        return nullptr;
+}
+void Visit(const koopa_raw_global_alloc_t &globalAlloc, const koopa_raw_value_t &value)
+{
+    cout << "\t.data" << endl;
+    cout << "\t.global " << (value->name + 1) << endl;
+    cout << (value->name + 1) << ":" << endl;
+    auto init = Visit(globalAlloc.init);
+    if (init == nullptr)
+    {
+        cout << "\t.zero 4" << endl;
+    }
+    else
+    {
+        cout << "\t.word " << init->offset << endl;
+    }
 }
 
 Reg *FindReg(const koopa_raw_value_t &value)

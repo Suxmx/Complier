@@ -46,10 +46,10 @@ using namespace std;
 
 // 非终结符的类型定义
 %type <ast_val> FuncDef Block Stmt PrimaryExp UnaryExp Exp AddExp MulExp RelExp EqExp LAndExp LOrExp
-%type <ast_val> Decl ConstDecl ConstDef InitVal BlockItem  VarDecl VarDef FuncFParam FuncRParam
+%type <ast_val> Decl ConstDecl ConstDef InitVal BlockItem  VarDecl VarDef FuncFParam FuncRParam Unit
 %type <int_val> Number AddOp MulOp RelOp EqOp LAndOp LOrOp BType FuncType
 %type <str_val> UnaryOp LVal
-%type <vec_val> BlockItemList ConstDefList VarDefList FuncDefList FuncFParamList FuncRParamList
+%type <vec_val> BlockItemList ConstDefList VarDefList CompUnitList FuncFParamList FuncRParamList
 %%
 
 // 开始符, CompUnit ::= FuncDef, 大括号后声明了解析完成后 parser 要做的事情
@@ -58,109 +58,35 @@ using namespace std;
 // 此时我们应该把 FuncDef 返回的结果收集起来, 作为 AST 传给调用 parser 的函数
 // $1 指代规则里第一个符号的返回值, 也就是 FuncDef 的返回值
 CompUnit
-  : FuncDefList {
+  : CompUnitList {
     auto comp=make_unique<CompUnitAST>();
     // comp->funcDef=unique_ptr<BaseAST>($1);
     comp->funcDefs = unique_ptr<vector<unique_ptr<BaseAST>>>($1);
     ast = move(comp);
   }
   ;
-FuncDefList
-  :FuncDef
+Unit
+  :Decl
+  {
+    $$ = $1;
+  }
+  |FuncDef
+  {
+    $$ = $1;
+  }
+CompUnitList
+  :Unit
   {
     auto list = new vector<unique_ptr<BaseAST>>();
     list->push_back(unique_ptr<BaseAST>($1));
     $$ = list;
   }
-  |FuncDefList FuncDef
+  |CompUnitList Unit
   {
     auto list = $1;
     list->push_back(unique_ptr<BaseAST>($2));
     $$ = list;
   }
-FuncFParam
-  :BType IDENT
-  {
-    auto param = new FuncFParamAST();
-    param->type = (EBType)($1); 
-    param->ident = *(unique_ptr<string>($2));
-    $$ = param;
-  }
-FuncFParamList
-  :FuncFParam
-  {
-    auto list = new vector<unique_ptr<BaseAST>>();
-    list->push_back(unique_ptr<BaseAST>($1));
-    $$ = list;
-  }
-  |FuncFParamList ',' FuncFParam
-  {
-    auto list = $1;
-    list->push_back(unique_ptr<BaseAST>($3));
-    $$ = list;
-  }
-FuncRParam
-  :Exp
-  {
-    auto param = new FuncRParamAST();
-    param->exp = unique_ptr<BaseAST>($1);
-    $$ = param;
-  }
-FuncRParamList
-  :FuncRParam
-  {
-    auto list = new vector<unique_ptr<BaseAST>>();
-    list->push_back(unique_ptr<BaseAST>($1));
-    $$ = list;
-  }
-  |FuncRParamList ',' FuncRParam
-  {
-    auto list = $1;
-    list->push_back(unique_ptr<BaseAST>($3));
-    $$ = list;
-  }
-
-
-// FuncDef ::= FuncType IDENT '(' ')' Block;
-// 我们这里可以直接写 '(' 和 ')', 因为之前在 lexer 里已经处理了单个字符的情况
-// 解析完成后, 把这些符号的结果收集起来, 然后拼成一个新的字符串, 作为结果返回
-// $$ 表示非终结符的返回值, 我们可以通过给这个符号赋值的方法来返回结果
-// 你可能会问, FuncType, IDENT 之类的结果已经是字符串指针了
-// 为什么还要用 unique_ptr 接住它们, 然后再解引用, 把它们拼成另一个字符串指针呢
-// 因为所有的字符串指针都是我们 new 出来的, new 出来的内存一定要 delete
-// 否则会发生内存泄漏, 而 unique_ptr 这种智能指针可以自动帮我们 delete
-// 虽然此处你看不出用 unique_ptr 和手动 delete 的区别, 但当我们定义了 AST 之后
-// 这种写法会省下很多内存管理的负担
-FuncDef
-  : FuncType IDENT '(' FuncFParamList ')' Block 
-  {
-    auto funcdef=new FuncDefAST();
-    funcdef->funcType = (EBType)($1);
-    funcdef->ident = *unique_ptr<string>($2);
-    funcdef->fParams = unique_ptr<vector<unique_ptr<BaseAST>>>($4);
-    funcdef->block = unique_ptr<BaseAST>($6);
-    $$ = funcdef;
-  }
-  |FuncType IDENT '(' ')' Block
-  {
-    auto funcdef=new FuncDefAST();
-    funcdef->funcType = (EBType)($1);
-    funcdef->ident = *unique_ptr<string>($2);
-    funcdef->block = unique_ptr<BaseAST>($5);
-    $$ = funcdef;
-  }
-  ;
-
-// 同上, 不再解释 
-FuncType
-  :INT {
-    $$ = (int)(EBType::Int);
-  }
-  |VOID
-  {
-    $$ = (int)(EBType::Void);
-  }
-  ;
 Decl
   :ConstDecl
   {
@@ -183,11 +109,7 @@ ConstDecl
     constDecl->defs = unique_ptr<vector<unique_ptr<BaseAST>>>($3);
     $$ = constDecl;
   };
-BType
-  :INT
-  {
-    $$ = 1;
-  };
+
 ConstDefList
   :ConstDef
   {
@@ -201,6 +123,16 @@ ConstDefList
     list->push_back(unique_ptr<BaseAST>($3));
     $$ = list;
   };
+BType
+  :INT
+  {
+    $$ = 1;
+  }
+  |VOID
+  {
+    $$ = (int)(EBType::Void);
+  }
+  ;;
 ConstDef
   :IDENT '=' InitVal
   {
@@ -209,13 +141,6 @@ ConstDef
     def->initVal = unique_ptr<BaseAST>($3);
     
     $$ = def;
-  };
-InitVal
-  :Exp
-  {
-    auto init= new InitValAST();
-    init->exp = unique_ptr<BaseAST>($1);
-    $$ = init;
   };
 VarDecl 
   :BType VarDefList ';'
@@ -252,6 +177,67 @@ VarDef
     def->initVal = unique_ptr<BaseAST>($3);
     $$ = def;
   }
+InitVal
+  :Exp
+  {
+    auto init= new InitValAST();
+    init->exp = unique_ptr<BaseAST>($1);
+    $$ = init;
+  };
+
+  
+FuncDef
+  : BType IDENT '(' FuncFParamList ')' Block 
+  {
+    auto funcdef=new FuncDefAST();
+    funcdef->funcType = (EBType)($1);
+    funcdef->ident = *unique_ptr<string>($2);
+    funcdef->fParams = unique_ptr<vector<unique_ptr<BaseAST>>>($4);
+    funcdef->block = unique_ptr<BaseAST>($6);
+    $$ = funcdef;
+  }
+  |BType IDENT '(' ')' Block
+  {
+    auto funcdef=new FuncDefAST();
+    funcdef->funcType = (EBType)($1);
+    funcdef->ident = *unique_ptr<string>($2);
+    funcdef->block = unique_ptr<BaseAST>($5);
+    $$ = funcdef;
+  }
+  ;
+// 同上, 不再解释 
+FuncType
+  :INT {
+    $$ = (int)(EBType::Int);
+  }
+  |VOID
+  {
+    $$ = (int)(EBType::Void);
+  }
+  ;
+FuncFParam
+  :BType IDENT
+  {
+    auto param = new FuncFParamAST();
+    param->type = (EBType)($1); 
+    param->ident = *(unique_ptr<string>($2));
+    $$ = param;
+  }
+FuncFParamList
+  :FuncFParam
+  {
+    auto list = new vector<unique_ptr<BaseAST>>();
+    list->push_back(unique_ptr<BaseAST>($1));
+    $$ = list;
+  }
+  |FuncFParamList ',' FuncFParam
+  {
+    auto list = $1;
+    list->push_back(unique_ptr<BaseAST>($3));
+    $$ = list;
+  }
+
+
 
 Block
   : '{' BlockItemList '}' {
@@ -288,12 +274,7 @@ BlockItemList
     list->push_back(unique_ptr<BaseAST>($2));
     $$ = list;
   };
-LVal
-  :IDENT
-  {
-    $$ = $1;
-  }         
-                                                                       
+                                                                           
 
 Stmt
   :LVal '=' Exp ';'
@@ -382,6 +363,11 @@ Exp
     exp->unaryExp = unique_ptr<BaseAST>($1);
     $$ = exp;
   };
+LVal
+  :IDENT
+  {
+    $$ = $1;
+  }   
 UnaryExp
   : PrimaryExp
   {
@@ -427,7 +413,26 @@ UnaryOp
   {
     $$ = new string("!");
   };
-
+FuncRParam
+  :Exp
+  {
+    auto param = new FuncRParamAST();
+    param->exp = unique_ptr<BaseAST>($1);
+    $$ = param;
+  }
+FuncRParamList
+  :FuncRParam
+  {
+    auto list = new vector<unique_ptr<BaseAST>>();
+    list->push_back(unique_ptr<BaseAST>($1));
+    $$ = list;
+  }
+  |FuncRParamList ',' FuncRParam
+  {
+    auto list = $1;
+    list->push_back(unique_ptr<BaseAST>($3));
+    $$ = list;
+  }
 PrimaryExp
   : '(' Exp ')'
   {

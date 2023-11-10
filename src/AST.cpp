@@ -39,7 +39,7 @@ string CompUnitAST::DumpIR() const
     symbolManager.AddSymbol("stoptime", data);
     for (const auto &def : *funcDefs)
     {
-        def->DumpIR();
+        def->DumpIRGlobal();
         cout << endl;
     }
     return "";
@@ -105,6 +105,11 @@ int FuncDefAST::CalcExp()
 {
     return block->CalcExp();
 }
+string FuncDefAST::DumpIRGlobal()
+{
+    return this->DumpIR();
+}
+
 void FuncFParamAST::Dump() const
 {
     cout << "FuncFParamAST { ident: " << ident << " type: "
@@ -824,6 +829,11 @@ string DeclAST::DumpIR() const
     decl->DumpIR();
     return "";
 }
+string DeclAST::DumpIRGlobal()
+{
+    decl->DumpIRGlobal();
+    return "";
+}
 
 void ConstDeclAST::Dump() const
 {
@@ -843,6 +853,14 @@ string ConstDeclAST::DumpIR() const
     }
     return "";
 }
+string ConstDeclAST::DumpIRGlobal()
+{
+    for (const auto &def : *defs)
+    {
+        def->DumpIRGlobal();
+    }
+    return "";
+}
 
 void ConstDefAST::Dump() const
 {
@@ -854,6 +872,12 @@ void ConstDefAST::Dump() const
     cout << " } " << endl;
 }
 string ConstDefAST::DumpIR() const
+{
+    DeclData data{EDecl::ConstDecl, ident, (initVal->CalcExp())};
+    symbolManager.AddSymbol(ident, data);
+    return "";
+}
+string ConstDefAST::DumpIRGlobal()
 {
     DeclData data{EDecl::ConstDecl, ident, (initVal->CalcExp())};
     symbolManager.AddSymbol(ident, data);
@@ -922,6 +946,14 @@ string VarDeclAST::DumpIR() const
     }
     return "";
 }
+string VarDeclAST::DumpIRGlobal()
+{
+    for (const auto &def : *defs)
+    {
+        def->DumpIRGlobal();
+    }
+    return "";
+}
 
 void VarDefAST::Dump() const
 {
@@ -937,5 +969,16 @@ string VarDefAST::DumpIR() const
     data = symbolManager.AddSymbol(ident, data);
     cout << "\t@" << data.globalIdent << " = alloc i32" << endl;
     cout << "\tstore " << value << ", @" << data.globalIdent << endl;
+    return "";
+}
+string VarDefAST::DumpIRGlobal()
+{
+    DeclData data{EDecl::Variable, ident};
+    data = symbolManager.AddSymbol(ident, data);
+    cout << "global @" << data.globalIdent << " = alloc i32, ";
+    if (initVal)
+        cout << initVal->CalcExp() << endl;
+    else
+        cout << "zeroinit" << endl;
     return "";
 }

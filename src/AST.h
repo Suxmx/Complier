@@ -23,6 +23,7 @@ public:
     virtual ~BaseAST() = default;
     virtual void Dump() const = 0;
     virtual string DumpIR() const = 0;
+    virtual string DumpIRGlobal(){return "";}
     virtual int CalcExp() { return 0; }
     virtual int GetType() const { return 0; }
     virtual string GetIdent() const { return ""; }
@@ -46,6 +47,7 @@ public:
     void Dump() const override;
     string DumpIR() const override;
     int CalcExp() override;
+    string DumpIRGlobal() override;
 };
 class BlockAST : public BaseAST
 {
@@ -187,6 +189,7 @@ public:
     unique_ptr<BaseAST> decl;
     void Dump() const override;
     string DumpIR() const override;
+    string DumpIRGlobal() override;
 };
 class ConstDeclAST : public BaseAST
 {
@@ -195,6 +198,7 @@ public:
     unique_ptr<vector<unique_ptr<BaseAST>>> defs;
     void Dump() const override;
     string DumpIR() const override;
+    string DumpIRGlobal() override;
 };
 class ConstDefAST : public BaseAST
 {
@@ -203,6 +207,7 @@ public:
     unique_ptr<BaseAST> initVal;
     void Dump() const override;
     string DumpIR() const override;
+    string DumpIRGlobal() override;
 };
 class InitValAST : public BaseAST
 {
@@ -235,6 +240,7 @@ public:
     unique_ptr<vector<unique_ptr<BaseAST>>> defs;
     void Dump() const override;
     string DumpIR() const override;
+    string DumpIRGlobal() override;
 };
 class VarDefAST : public BaseAST
 {
@@ -243,6 +249,7 @@ public:
     unique_ptr<BaseAST> initVal;
     void Dump() const override;
     string DumpIR() const override;
+    string DumpIRGlobal() override;
 };
 class FuncFParamAST : public BaseAST
 {
