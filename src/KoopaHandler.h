@@ -55,9 +55,14 @@ public:
 
     void SetReg(int reg)
     {
-        assert(reg >= 0 && reg < regNames.size());
+        assert(reg >= 0 && reg < regNames.size() + paramRegNames.size());
         this->regNum = reg;
-        this->regName = regNames[reg];
+        if (reg >= 0 && reg < regNames.size())
+            regName = regNames[reg];
+        else if (reg >= regNames.size() && reg <= regNames.size() + paramRegNames.size() - 1)
+            regName = paramRegNames[reg - regNames.size()];
+        else
+            regName = "Stack";
     }
 };
 
@@ -94,7 +99,7 @@ void Visit(const koopa_raw_branch_t &branch, const koopa_raw_value_t &value);
 
 void Visit(const koopa_raw_jump_t &jump, const koopa_raw_value_t &value);
 
-void Visit(const koopa_raw_call_t &call, const koopa_raw_value_t &value);
+Reg *Visit(const koopa_raw_call_t &call, const koopa_raw_value_t &value);
 
 Reg *FindReg(const koopa_raw_value_t &value);
 
@@ -137,6 +142,8 @@ void Visit(const koopa_raw_slice_t &slice)
 
 void Visit(const koopa_raw_function_t &function)
 {
+    if (function->bbs.len == 0)
+        return;
     int maxArgNum = -1;
 
     stackSize = 0;
@@ -150,8 +157,10 @@ void Visit(const koopa_raw_function_t &function)
     {
         auto ptr = function->bbs.buffer[i];
         auto block = reinterpret_cast<koopa_raw_basic_block_t>(ptr);
+        // cout<<block->insts.len<<endl;
         for (int j = 0; j < block->insts.len; j++)
         {
+
             ptr = block->insts.buffer[j];
             auto inst = reinterpret_cast<koopa_raw_value_t>(ptr);
             if (inst->ty->tag != KOOPA_RTT_UNIT)
@@ -272,8 +281,8 @@ Reg *Visit(const koopa_raw_value_t &value)
         return nullptr;
         break;
     case KOOPA_RVT_CALL:
-        Visit(value->kind.data.call, value);
-        return nullptr;
+        return Visit(value->kind.data.call, value);
+
         break;
 
     default:
@@ -449,7 +458,7 @@ void Visit(const koopa_raw_jump_t &jump, const koopa_raw_value_t &value)
     cout << "\tj " << (jump.target->name + 1) << endl;
 }
 
-void Visit(const koopa_raw_call_t &call, const koopa_raw_value_t &value)
+Reg *Visit(const koopa_raw_call_t &call, const koopa_raw_value_t &value)
 {
     for (int i = 0; i < call.args.len; i++)
     {
@@ -479,12 +488,18 @@ void Visit(const koopa_raw_call_t &call, const koopa_raw_value_t &value)
         ReleaseRegs(reg);
     }
     cout << "\tcall " << call.callee->name + 1 << endl;
-    Reg ret;
-    ret.offset = stackTop;
-    tmpRegs.push_back(ret);
-    cout << "\tsw a0, " << stackTop << "(sp)" << endl;
-    stackTop += 4;
-    valueMap[value] = &(tmpRegs[tmpRegs.size() - 1]);
+    if (value->ty->tag != KOOPA_RTT_UNIT)
+    {
+        Reg ret;
+        ret.offset = stackTop;
+        tmpRegs.push_back(ret);
+
+        cout << "\tsw a0, " << stackTop << "(sp)" << endl;
+        stackTop += 4;
+        valueMap[value] = &(tmpRegs[tmpRegs.size() - 1]);
+        return &(tmpRegs[tmpRegs.size() - 1]);
+    }
+    else return nullptr;
 }
 
 Reg *FindReg(const koopa_raw_value_t &value)
